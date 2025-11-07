@@ -1,0 +1,129 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mkdocs-to-confluence"
+version = "0.2.0"
+description = "MkDocs plugin for converting and uploading Markdown pages to Confluence (via REST API)"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [{ name = "Julien Manteau", email = "jmanteau@gmail.com" }]
+keywords = [
+  "mkdocs",
+  "markdown",
+  "confluence",
+  "documentation",
+  "rest",
+  "python",
+]
+license = { text = "MIT" }
+dependencies = [
+  "mkdocs>=1.1",
+  "jinja2",
+  "requests",
+  "mime>=0.1.0",
+  "mistune>=3.1.2",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=7.4.0",
+  "pytest-cov>=4.1.0",
+  "mypy>=1.10.0",
+  "pip-audit>=2.6.0",
+  "radon>=6.0.1",
+  "ruff>=0.4.0",
+  "coverage>=7.2.0",
+  "types-PyYAML",
+  "bandit>=1.7.0",
+  "types-requests>=2.31.0",
+  "responses>=0.25.8",
+  "pre-commit>=3.5.0",
+]
+docs = [
+  "mkdocs>=1.6.0",
+  "mkdocs-material>=9.5.0",
+  "mkdocstrings[python]>=0.25.0",
+  "mkdocs-section-index>=0.3.8",
+  "mkdocs-gen-files>=0.5.0",
+  "mike>=2.1.0",
+]
+
+[project.entry-points."mkdocs.plugins"]
+mkdocs-to-confluence = "mkdocs_to_confluence.plugin:MkdocsWithConfluence"
+
+[project.urls]
+Homepage = "https://github.com/jmanteau/mkdocs-to-confluence"
+Repository = "https://github.com/jmanteau/mkdocs-to-confluence"
+"Bug Tracker" = "https://github.com/jmanteau/mkdocs-to-confluence/issues"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.uv]
+# Optional: configure index, constraints, or groups resolution
+# See: uv docs. Empty by default.
+
+# ---- Lint/Format (ruff) ----
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+  "E",   # pycodestyle errors
+  "W",   # pycodestyle warnings
+  "F",   # pyflakes
+  "I",   # isort
+  "B",   # flake8-bugbear
+  "C4",  # flake8-comprehensions
+  "UP",  # pyupgrade
+  "D",   # pydocstyle
+  "S",   # bandit
+  "T20", # flake8-print
+  "SIM", # flake8-simplify
+  "LOG", # flake8-logging
+]
+ignore = [
+  "S101", # Use of assert detected (allow in tests)
+  "B008", # Do not perform function call in argument defaults (Typer pattern)
+  "D203", # one-blank-line-before-class (conflicts with D211)
+  "D213", # multi-line-summary-second-line (conflicts with D212)
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+# ---- Pytest ----
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-q -ra --color=yes --cov=mkdocs_to_confluence --cov-report=term-missing"
+testpaths = ["tests"]
+
+# ---- Coverage ----
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+fail_under = 10
+show_missing = true
+skip_covered = true
+
+# ---- Mypy ----
+[tool.mypy]
+python_version = "3.12"
+warn_unused_configs = true
+disallow_untyped_defs = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+strict_equality = true
+pretty = true
+exclude = ["docs/"]
+ignore_missing_imports = true
+
+# ---- MkDocs ----
+[tool.mkdocs]
+# empty; use mkdocs.yml for site structure
