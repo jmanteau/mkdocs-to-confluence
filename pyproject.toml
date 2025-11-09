@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mkdocs-to-confluence"
-version = "0.2.0"
+version = "0.3.0"
 description = "MkDocs plugin for converting and uploading Markdown pages to Confluence (via REST API)"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -105,6 +105,9 @@ testpaths = ["tests"]
 # ---- Coverage ----
 [tool.coverage.run]
 branch = true
+omit = [
+  "src/mkdocs_to_confluence/_vendor/md2cf/*",
+]
 
 [tool.coverage.report]
 fail_under = 10

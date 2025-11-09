@@ -1,7 +1,7 @@
-import uuid
 import re
+import uuid
 from pathlib import Path
-from typing import List, NamedTuple, Optional, Any
+from typing import Any, List, NamedTuple, Optional
 from urllib.parse import unquote, urlparse
 
 import mistune
@@ -15,7 +15,7 @@ class RelativeLink(NamedTuple):
     escaped_original: str
 
 
-class ConfluenceTag(object):
+class ConfluenceTag:
     def __init__(self, name, text="", attrib=None, namespace="ac", cdata=False):
         self.name = name
         self.text = text
@@ -40,7 +40,7 @@ class ConfluenceTag(object):
             " {}".format(
                 " ".join(
                     [
-                        '{}="{}"'.format(name, value)
+                        f'{name}="{value}"'
                         for name, value in sorted(namespaced_attribs.items())
                     ]
                 )
@@ -48,14 +48,14 @@ class ConfluenceTag(object):
             if namespaced_attribs
             else "",
             "".join([child.render() for child in self.children]),
-            "<![CDATA[{}]]>".format(self.text) if self.cdata else self.text,
+            f"<![CDATA[{self.text}]]>" if self.cdata else self.text,
             namespaced_name,
         )
-        return "{}\n".format(content)
+        return f"{content}\n"
 
     @staticmethod
     def add_namespace(tag, namespace):
-        return "{}:{}".format(namespace, tag)
+        return f"{namespace}:{tag}"
 
     def append(self, child):
         self.children.append(child)

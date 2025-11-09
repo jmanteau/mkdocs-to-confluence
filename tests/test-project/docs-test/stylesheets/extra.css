@@ -1,0 +1,481 @@
+/* ================================================================
+   Airbus Design System Integration for MkDocs Material
+   ================================================================ */
+
+/* Import Airbus Design System styles */
+@import url('airbus-design-system.css');
+
+/* ================================================================
+   Custom Color Palette - Airbus Design System Colors (Official)
+   ================================================================ */
+:root {
+  /* Airbus Primary Blues (Official Palette) */
+  --airbus-blue-dark: #00205b;
+  --airbus-blue-medium: #6399ae;
+  --airbus-blue-light: #b7c9d3;
+
+  /* Airbus Greys */
+  --airbus-grey-darkest: #282e3a;
+  --airbus-grey-dark: #647592;
+  --airbus-grey-medium: #8390a7;
+  --airbus-grey-light: #e2e9ed;
+  --airbus-grey-lightest: #f0f4f6;
+
+  /* Airbus Functional Colors */
+  --airbus-success: #08875b;
+  --airbus-warning: #fbca32;
+  --airbus-error: #e4002b;
+
+  /* Override Material theme colors with Airbus palette */
+  --md-primary-fg-color: var(--airbus-blue-medium);
+  --md-primary-fg-color--light: var(--airbus-blue-light);
+  --md-primary-fg-color--dark: var(--airbus-blue-dark);
+  --md-accent-fg-color: var(--airbus-blue-medium);
+
+  /* Text colors */
+  --md-typeset-a-color: var(--airbus-blue-dark);
+
+  /* Default text color */
+  --md-default-fg-color: var(--airbus-grey-darkest);
+  --md-default-fg-color--light: var(--airbus-grey-dark);
+  --md-default-fg-color--lighter: var(--airbus-grey-medium);
+  --md-default-fg-color--lightest: var(--airbus-grey-light);
+}
+
+/* ================================================================
+   Typography - Airbus Design System Fonts
+   ================================================================ */
+:root {
+  --md-text-font: "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --md-code-font: "Roboto Mono", "Courier New", Courier, monospace;
+}
+
+body {
+  font-family: var(--md-text-font);
+  font-weight: 400;
+  /* Regular for body text */
+}
+
+/* ================================================================
+   Inter Font Weight Hierarchy
+   ================================================================ */
+
+/* Headers & Navigation - Bold (700) */
+.md-header__title,
+.md-typeset h1 {
+  font-weight: 700;
+  color: var(--airbus-blue-dark);
+}
+
+.md-typeset h1 {
+  margin-top: 0;
+}
+
+.md-typeset h1:not(:first-child) {
+  margin-top: 2.5rem;
+}
+
+/* Section Headers - SemiBold (600) */
+.md-typeset h2,
+.md-typeset h3 {
+  font-weight: 600;
+  color: var(--airbus-blue-dark);
+}
+
+.md-typeset h2 {
+  margin-top: 2rem;
+}
+
+.md-typeset h3 {
+  margin-top: 1.6rem;
+}
+
+/* Minor Headers - Medium (500) */
+.md-typeset h4,
+.md-typeset h5,
+.md-typeset h6 {
+  font-weight: 500;
+  color: var(--airbus-blue-medium);
+}
+
+.md-typeset h4 {
+  margin-top: 1.4rem;
+}
+
+.md-typeset h5,
+.md-typeset h6 {
+  margin-top: 1.2rem;
+}
+
+/* Navigation - SemiBold (600) for tabs, Medium (500) for sidebar */
+.md-tabs__link {
+  font-weight: 600;
+}
+
+.md-nav__link {
+  font-weight: 500;
+}
+
+.md-nav__link--active {
+  font-weight: 600;
+}
+
+/* Buttons - SemiBold (600) */
+.md-button {
+  font-weight: 600;
+}
+
+/* Links - Medium (500) */
+a {
+  font-weight: 500;
+}
+
+/* ================================================================
+   Table Styling - Airbus Design System
+   ================================================================ */
+
+/* Table base styling */
+.md-typeset table:not([class]) {
+  border-collapse: collapse;
+  border-spacing: 0;
+  width: 100%;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+/* Table headers */
+.md-typeset table:not([class]) th {
+  font-weight: 600;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  background-color: var(--airbus-grey-lightest);
+  border-bottom: 2px solid var(--airbus-grey-light);
+  color: var(--airbus-grey-darkest);
+}
+
+/* Table cells */
+.md-typeset table:not([class]) td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--airbus-grey-light);
+  color: var(--airbus-grey-darkest);
+}
+
+/* Table rows - hover effect */
+.md-typeset table:not([class]) tbody tr:hover {
+  background-color: var(--airbus-grey-lightest);
+}
+
+/* Dark mode tables */
+[data-md-color-scheme="slate"] .md-typeset table:not([class]) th {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+  color: white;
+}
+
+[data-md-color-scheme="slate"] .md-typeset table:not([class]) td {
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.87);
+}
+
+[data-md-color-scheme="slate"] .md-typeset table:not([class]) tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Admonition Titles - SemiBold (600) */
+.md-typeset .admonition-title {
+  font-weight: 600;
+}
+
+/* Inline Code - Medium (500) */
+.md-typeset code {
+  font-weight: 500;
+}
+
+/* Footer - Regular (400) */
+.md-footer,
+.md-footer-meta {
+  font-weight: 400;
+}
+
+/* Body Text - Regular (400) */
+.md-typeset p,
+.md-typeset li,
+.md-typeset table td {
+  font-weight: 400;
+}
+
+/* ================================================================
+   Header Customization
+   ================================================================ */
+.md-header {
+  background-color: var(--airbus-blue-dark);
+}
+
+.md-header__button {
+  color: white;
+}
+
+.md-header__title {
+  font-weight: 700;
+  color: white;
+}
+
+/* ================================================================
+   Navigation Customization
+   ================================================================ */
+.md-nav__item--active>.md-nav__link {
+  color: var(--airbus-blue-medium);
+}
+
+.md-nav__link:hover {
+  color: var(--airbus-blue-medium);
+}
+
+/* ================================================================
+   Button Customization - Use Airbus Design System Buttons
+   ================================================================ */
+.md-button {
+  border-radius: 3px;
+}
+
+.md-button--primary {
+  background-color: var(--airbus-blue-medium);
+  border-color: var(--airbus-blue-medium);
+}
+
+.md-button--primary:hover {
+  background-color: var(--airbus-blue-dark);
+  border-color: var(--airbus-blue-dark);
+}
+
+/* ================================================================
+   Code Blocks Customization
+   ================================================================ */
+.highlight code {
+  border-radius: 3px;
+}
+
+/* ================================================================
+   Admonition Customization
+   ================================================================ */
+.md-typeset .admonition {
+  border-radius: 3px;
+  border-left: 4px solid var(--airbus-blue-medium);
+}
+
+/* ================================================================
+   Footer Customization
+   ================================================================ */
+.md-footer {
+  background-color: var(--airbus-blue-dark);
+}
+
+.md-footer-meta {
+  background-color: var(--airbus-blue-dark);
+}
+
+/* Footer copyright wrapper - prevent justification and fix vertical alignment */
+.airbus-copyright-wrapper {
+  text-align: left;
+  display: inline-block;
+  font-size: 0.64rem;
+  line-height: 1.6;
+}
+
+.md-footer-copyright {
+  display: flex;
+  align-items: center;
+  margin: auto 0;
+}
+
+.md-footer-meta__inner {
+  display: flex;
+  align-items: center;
+}
+
+/* ================================================================
+   Custom Utilities
+   ================================================================ */
+.airbus-logo {
+  max-height: 40px;
+  vertical-align: middle;
+}
+
+/* ================================================================
+   Content Width Customization
+   ================================================================ */
+
+/* Increase content width - default is 61rem (976px) */
+.md-grid {
+  max-width: 80rem;
+  /* 1280px - increase this value for wider content */
+}
+
+/* Alternative: Remove max-width entirely for full-width content */
+/*
+.md-grid {
+  max-width: initial;
+  margin-left: 2rem;
+  margin-right: 2rem;
+}
+*/
+
+/* ================================================================
+   Dark Mode / Slate Theme Customization
+   ================================================================ */
+
+[data-md-color-scheme="slate"] {
+  /* Airbus colors for dark mode */
+  --md-primary-fg-color: var(--airbus-blue-light);
+  --md-primary-fg-color--light: var(--airbus-blue-medium);
+  --md-primary-fg-color--dark: var(--airbus-blue-dark);
+  --md-accent-fg-color: var(--airbus-blue-light);
+
+  /* Adjust text colors for dark mode */
+  --md-typeset-a-color: var(--airbus-blue-light);
+}
+
+/* Dark mode - Headers */
+[data-md-color-scheme="slate"] .md-typeset h1,
+[data-md-color-scheme="slate"] .md-typeset h2,
+[data-md-color-scheme="slate"] .md-typeset h3 {
+  color: var(--airbus-blue-light);
+}
+
+[data-md-color-scheme="slate"] .md-typeset h4,
+[data-md-color-scheme="slate"] .md-typeset h5,
+[data-md-color-scheme="slate"] .md-typeset h6 {
+  color: var(--airbus-blue-medium);
+}
+
+/* Dark mode - Links */
+[data-md-color-scheme="slate"] a {
+  color: var(--airbus-blue-light);
+}
+
+[data-md-color-scheme="slate"] a:hover {
+  color: var(--airbus-blue-medium);
+}
+
+/* Dark mode - Navigation */
+[data-md-color-scheme="slate"] .md-nav__item--active>.md-nav__link {
+  color: var(--airbus-blue-light);
+}
+
+[data-md-color-scheme="slate"] .md-nav__link:hover {
+  color: var(--airbus-blue-light);
+}
+
+/* Dark mode - Sidebar background */
+[data-md-color-scheme="slate"] .md-sidebar--primary {
+  background-color: var(--md-default-bg-color);
+}
+
+/* Dark mode - Secondary nav (TOC) */
+[data-md-color-scheme="slate"] .md-nav--secondary .md-nav__link--active {
+  color: var(--airbus-blue-light);
+}
+
+/* Dark mode - Buttons */
+[data-md-color-scheme="slate"] .md-button--primary {
+  background-color: var(--airbus-blue-light);
+  border-color: var(--airbus-blue-light);
+  color: var(--airbus-blue-dark);
+}
+
+[data-md-color-scheme="slate"] .md-button--primary:hover {
+  background-color: var(--airbus-blue-medium);
+  border-color: var(--airbus-blue-medium);
+}
+
+/* Dark mode - Code blocks */
+[data-md-color-scheme="slate"] .md-typeset code {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--airbus-blue-light);
+}
+
+/* Dark mode - Admonitions */
+[data-md-color-scheme="slate"] .md-typeset .admonition {
+  border-left-color: var(--airbus-blue-light);
+}
+
+/* ================================================================
+   Comprehensive Material Theme Overrides
+   ================================================================ */
+
+/* Tabs Navigation */
+.md-tabs {
+  background-color: var(--airbus-blue-dark);
+}
+
+.md-tabs__link {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.md-tabs__link--active {
+  color: white;
+  opacity: 1;
+}
+
+.md-tabs__link:hover {
+  color: white;
+  opacity: 0.9;
+}
+
+/* Search */
+.md-search__input {
+  background-color: var(--airbus-grey-dark);
+  border-radius: 4px;
+}
+
+.md-search__input::placeholder {
+  color: rgba(255, 255, 255, 0.54);
+}
+
+.md-search__input:focus {
+  border-color: var(--airbus-blue-medium);
+}
+
+/* Search when expanded/typing - use proper Material for MkDocs selector */
+[data-md-toggle="search"]:checked~.md-header .md-search__input {
+  background-color: white;
+  color: var(--airbus-grey-darkest);
+}
+
+[data-md-toggle="search"]:checked~.md-header .md-search__input::placeholder {
+  color: var(--airbus-grey-medium);
+}
+
+/* Code highlighting accent */
+.md-typeset code {
+  background-color: var(--airbus-grey-lightest);
+  color: var(--airbus-grey-darkest);
+}
+
+/* Links */
+a {
+  color: var(--airbus-blue-dark);
+}
+
+a:hover {
+  color: var(--airbus-blue-medium);
+}
+
+/* Table of contents */
+.md-nav--secondary .md-nav__link--active {
+  color: var(--airbus-blue-medium);
+}
+
+/* Sidebar */
+.md-sidebar--primary {
+  background-color: white;
+}
+
+/* Back to top button */
+.md-top {
+  background-color: var(--airbus-blue-medium);
+}
+
+.md-top:hover {
+  background-color: var(--airbus-blue-dark);
+}

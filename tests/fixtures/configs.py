@@ -12,6 +12,7 @@ MINIMAL_CONFIG = {
     "verbose": False,
     "debug": False,
     "dryrun": False,
+    "export_dir": "confluence-export",
 }
 
 # Configuration with API token
@@ -27,6 +28,7 @@ CONFIG_WITH_API_TOKEN = {
     "verbose": False,
     "debug": False,
     "dryrun": False,
+    "export_dir": "confluence-export",
 }
 
 # Configuration with Bearer token authentication
@@ -42,6 +44,7 @@ CONFIG_WITH_BEARER_AUTH = {
     "verbose": False,
     "debug": False,
     "dryrun": False,
+    "export_dir": "confluence-export",
 }
 
 # Configuration with debug enabled
@@ -56,6 +59,7 @@ CONFIG_DEBUG_MODE = {
     "verbose": False,
     "debug": True,
     "dryrun": False,
+    "export_dir": "confluence-export",
 }
 
 # Configuration with dryrun enabled
@@ -70,6 +74,7 @@ CONFIG_DRYRUN_MODE = {
     "verbose": False,
     "debug": False,
     "dryrun": True,
+    "export_dir": "confluence-export",
 }
 
 # Configuration with enabled_if_env
@@ -84,6 +89,7 @@ CONFIG_WITH_ENV_CHECK = {
     "verbose": False,
     "debug": False,
     "dryrun": False,
+    "export_dir": "confluence-export",
 }
 
 # Incomplete configuration (missing required fields)
@@ -98,4 +104,5 @@ INCOMPLETE_CONFIG = {
     "verbose": False,
     "debug": False,
     "dryrun": False,
+    "export_dir": "confluence-export",
 }

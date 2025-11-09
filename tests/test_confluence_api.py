@@ -1,5 +1,6 @@
 """Tests for Confluence API operations with mocked HTTP responses."""
 
+import requests
 import responses
 
 from mkdocs_to_confluence.plugin import MkdocsWithConfluence
@@ -236,3 +237,140 @@ def test_update_page_respects_dryrun_mode():
 
     put_calls = [c for c in responses.calls if c.request.method == "PUT"]
     assert len(put_calls) == 0
+
+
+@responses.activate
+def test_find_page_id_handles_connection_error():
+    """Test find_page_id returns None on connection error."""
+    plugin = MkdocsWithConfluence()
+    plugin.config = MINIMAL_CONFIG.copy()
+
+    responses.add(
+        responses.GET,
+        "https://confluence.example.com/rest/api/content",
+        body=requests.exceptions.ConnectionError("Failed to resolve hostname"),
+    )
+
+    page_id = plugin.find_page_id("Test Page")
+
+    assert page_id is None
+
+
+@responses.activate
+def test_find_page_version_handles_connection_error():
+    """Test find_page_version returns None on connection error."""
+    plugin = MkdocsWithConfluence()
+    plugin.config = MINIMAL_CONFIG.copy()
+
+    responses.add(
+        responses.GET,
+        "https://confluence.example.com/rest/api/content",
+        body=requests.exceptions.ConnectionError("Connection refused"),
+    )
+
+    version = plugin.find_page_version("Test Page")
+
+    assert version is None
+
+
+@responses.activate
+def test_find_parent_name_handles_connection_error_on_id_lookup():
+    """Test find_parent_name_of_page returns None when page ID lookup fails."""
+    plugin = MkdocsWithConfluence()
+    plugin.config = MINIMAL_CONFIG.copy()
+
+    responses.add(
+        responses.GET,
+        "https://confluence.example.com/rest/api/content",
+        body=requests.exceptions.ConnectionError("DNS resolution failed"),
+    )
+
+    parent_name = plugin.find_parent_name_of_page("Child Page")
+
+    assert parent_name is None
+
+
+@responses.activate
+def test_find_parent_name_handles_connection_error_on_ancestor_lookup():
+    """Test find_parent_name_of_page returns None when ancestor lookup fails."""
+    plugin = MkdocsWithConfluence()
+    plugin.config = MINIMAL_CONFIG.copy()
+
+    responses.add(
+        responses.GET,
+        "https://confluence.example.com/rest/api/content",
+        json=PAGE_FOUND_RESPONSE,
+        status=200,
+    )
+
+    responses.add(
+        responses.GET,
+        "https://confluence.example.com/rest/api/content/123456",
+        body=requests.exceptions.ConnectionError("Connection timeout"),
+    )
+
+    parent_name = plugin.find_parent_name_of_page("Child Page")
+
+    assert parent_name is None
+
+
+@responses.activate
+def test_add_page_handles_connection_error():
+    """Test add_page handles connection error gracefully without crashing."""
+    plugin = MkdocsWithConfluence()
+    plugin.config = MINIMAL_CONFIG.copy()
+
+    responses.add(
+        responses.POST,
+        "https://confluence.example.com/rest/api/content/",
+        body=requests.exceptions.ConnectionError("Network unreachable"),
+    )
+
+    # Should not raise exception
+    plugin.add_page("New Page", "111111", "<p>Content</p>")
+
+
+@responses.activate
+def test_update_page_handles_connection_error_on_find():
+    """Test update_page handles connection error during page ID lookup."""
+    plugin = MkdocsWithConfluence()
+    plugin.config = MINIMAL_CONFIG.copy()
+
+    responses.add(
+        responses.GET,
+        "https://confluence.example.com/rest/api/content",
+        body=requests.exceptions.ConnectionError("Host not found"),
+    )
+
+    # Should not raise exception
+    plugin.update_page("Test Page", "<p>Updated</p>")
+
+
+@responses.activate
+def test_update_page_handles_connection_error_on_update():
+    """Test update_page handles connection error during update request."""
+    plugin = MkdocsWithConfluence()
+    plugin.config = MINIMAL_CONFIG.copy()
+
+    responses.add(
+        responses.GET,
+        "https://confluence.example.com/rest/api/content",
+        json=PAGE_WITH_VERSION_RESPONSE,
+        status=200,
+    )
+
+    responses.add(
+        responses.GET,
+        "https://confluence.example.com/rest/api/content",
+        json=PAGE_WITH_VERSION_RESPONSE,
+        status=200,
+    )
+
+    responses.add(
+        responses.PUT,
+        "https://confluence.example.com/rest/api/content/123456",
+        body=requests.exceptions.ConnectionError("Connection reset"),
+    )
+
+    # Should not raise exception
+    plugin.update_page("Test Page", "<p>Updated</p>")

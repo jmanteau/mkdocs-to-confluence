@@ -1,0 +1,34 @@
+site_name: NimbusFleet Documentation
+site_description: Cloud-Native Drone Management Platform
+docs_dir: ../docs-test
+site_dir: site
+
+theme:
+  name: material
+
+nav:
+  - Home: index.md
+  - Tutorial:
+      - Deploy Your First Drone: tutorial/deploy-your-first-drone.md
+      - Troubleshoot Field Issues: tutorial/troubleshoot-field-issues.md
+  - How-To:
+      - Integrate AWS IoT Core: how-to/integrate-aws-iot-core.md
+  - Reference:
+      - API:
+          - REST API: reference/api/rest.md
+          - WebSocket API: reference/api/websocket.md
+      - CLI:
+          - Commands: reference/cli/commands.md
+  - Explanation:
+      - Architecture Overview: explanation/architecture-overview.md
+      - Scaling Principles: explanation/scaling-principles.md
+  - Markdown Showcase: markdown-showcase.md
+
+plugins:
+  - mkdocs-to-confluence:
+      host_url: https://example.atlassian.net
+      space: TEST
+      parent_page_title: NimbusFleet Documentation
+      dryrun: true
+      export_dir: confluence-export
+      debug: true

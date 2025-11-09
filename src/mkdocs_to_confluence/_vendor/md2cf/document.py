@@ -6,13 +6,12 @@ from typing import Any, Dict, List, Optional
 import chardet
 import mistune
 import yaml
-from yaml.parser import ParserError
-
 from md2cf.confluence_renderer import ConfluenceRenderer, RelativeLink
 from md2cf.ignored_files import GitRepository
+from yaml.parser import ParserError
 
 
-class Page(object):
+class Page:
     def __init__(
         self,
         title: Optional[str],
@@ -51,7 +50,7 @@ class Page(object):
         return "Page({})".format(
             ", ".join(
                 [
-                    "{}={}".format(name, repr(value))
+                    f"{name}={repr(value)}"
                     for name, value in [
                         ["title", self.title],
                         ["file_path", self.file_path],
@@ -92,8 +91,7 @@ def get_pages_from_directory(
     use_gitignore: bool = True,
     enable_relative_links: bool = False,
 ) -> List[Page]:
-    """
-    Collect a list of markdown files recursively under the file_path directory.
+    """Collect a list of markdown files recursively under the file_path directory.
 
     :param file_path: The starting path from which to search
     :param collapse_single_pages:

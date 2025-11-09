@@ -1,0 +1,18 @@
+# Test project dependencies for mkdocs-to-confluence
+# This is not a package, just a test environment
+
+[tool.uv]
+managed = true
+package = false
+
+[tool.uv.sources]
+
+[project]
+name = "mkdocs-test-project"
+version = "0.1.0"
+description = "Test environment for mkdocs-to-confluence plugin"
+requires-python = ">=3.10"
+dependencies = [
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.0.0",
+]
