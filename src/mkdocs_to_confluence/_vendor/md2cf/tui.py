@@ -5,11 +5,10 @@ import rich.progress
 import rich.table
 import rich.text
 import rich.tree
-
 from md2cf.console_output import console
 
 
-class Md2cfTUI(object):
+class Md2cfTUI:
     def __init__(self, pages_to_upload):
         tree = rich.tree.Tree("Pages to upload", hide_root=True)
         progress_table = rich.table.Table.grid()

@@ -31,7 +31,7 @@ A MkDocs plugin that automatically publishes your documentation to Atlassian Con
 - **Image Management** - Automatically uploads and updates images as attachments
 - **Multiple Authentication Methods** - Supports Basic Auth, API tokens, and OAuth Bearer tokens
 - **Environment Variable Support** - Secure credential management for CI/CD pipelines
-- **Dry Run Mode** - Preview changes without modifying Confluence
+- **Dry Run Mode** - Export to filesystem for review before publishing to Confluence
 - **Conditional Publishing** - Enable/disable based on environment variables
 - **Enhanced Markdown** - Extended syntax support including strikethrough, admonitions, task lists, and more
 - **Comprehensive Logging** - Verbose and debug modes for troubleshooting
@@ -139,7 +139,8 @@ plugins:
 | `api_token` | Yes* | string | API token (Cloud) or OAuth token (with `auth_type: bearer`) |
 | `auth_type` | No | string | Authentication type: `basic` (default) or `bearer` |
 | `enabled_if_env` | No | string | Only publish if this environment variable is set to `"1"` |
-| `dryrun` | No | boolean | Preview mode - no actual changes to Confluence (default: `false`) |
+| `dryrun` | No | boolean | Preview mode - exports to filesystem instead of Confluence (default: `false`) |
+| `export_dir` | No | string | Directory for dry-run exports (default: `confluence-export`) |
 | `verbose` | No | boolean | Enable verbose logging (default: `false`) |
 | `debug` | No | boolean | Enable debug logging (default: `false`) |
 
@@ -236,8 +237,25 @@ plugins:
   - mkdocs-to-confluence:
       host_url: https://your-domain.atlassian.net/wiki/rest/api/content
       space: DEV
-      dryrun: true  # No actual changes
-      debug: true   # Detailed logging
+      dryrun: true              # Export to filesystem instead of Confluence
+      export_dir: confluence-export  # Optional: custom export directory
+      debug: true               # Detailed logging
+```
+
+When `dryrun: true` is enabled, the plugin exports all pages to your local filesystem instead of publishing to Confluence. This creates a directory structure that mirrors your page hierarchy, making it easy to preview the Confluence-formatted content before uploading.
+
+**Exported structure:**
+```
+confluence-export/
+├── metadata.json              # Summary of all exported pages
+├── Home/
+│   ├── page.html             # Confluence-formatted HTML
+│   ├── metadata.json         # Page metadata
+│   └── attachments/          # Any attachments for this page
+│       └── image.png
+└── Home/Child_Page/
+    ├── page.html
+    └── metadata.json
 ```
 
 
@@ -284,15 +302,22 @@ plugins:
 
 ### Dry Run Testing
 
-Test without making changes:
+Test your configuration by exporting to the filesystem instead of publishing to Confluence:
 
 ```yaml
 plugins:
   - mkdocs-to-confluence:
       dryrun: true
+      export_dir: confluence-export  # Optional: defaults to "confluence-export"
 ```
 
-This shows what would be published without actually modifying Confluence.
+When you build your docs with `mkdocs build`, the plugin will:
+1. Convert all pages to Confluence HTML format
+2. Export them to the `export_dir` directory
+3. Create a hierarchical folder structure matching your page organization
+4. Include all metadata and attachments
+
+You can then review the `page.html` files to see exactly what will be published to Confluence before actually uploading.
 
 ## Requirements
 
@@ -324,6 +349,9 @@ make py-setup
 
 # Run tests
 make py-test
+
+# Test dry-run export with sample documentation
+make test-dryrun
 
 # Run linting
 make py-ruff

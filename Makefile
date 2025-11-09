@@ -2,7 +2,7 @@
 # Modern Python project automation using uv
 
 .DEFAULT_GOAL := help
-.PHONY: help py-setup py-clean py-ruff py-ruff-fix py-mypy py-test py-report py-security py-complexity py-pre-commit py-ci \
+.PHONY: help py-setup py-clean py-ruff py-ruff-fix py-mypy py-test py-report test-dryrun py-security py-complexity py-pre-commit py-ci \
         clean lint-fix tests complexity quality info run \
         docs-serve docs-build docs-deploy adr-new adr-list \
         build test-upload upload release test-install publish-check \
@@ -50,8 +50,11 @@ py-clean:
 	rm -rf htmlcov/
 	rm -rf .mypy_cache/
 	rm -rf .ruff_cache/
+	rm -rf tests/test-project/confluence-export/
+	rm -rf tests/test-project/site/
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
+	find . -type f -name "confluence_page_*.html" -delete
 	@echo "$(GREEN)✓ Cleanup complete$(RESET)"
 
 clean: py-clean ## Alias for py-clean
@@ -119,6 +122,28 @@ py-report: ## Generate coverage report
 py-report: cmd-exists-uv
 	uv --native-tls run coverage html
 	@echo "Coverage report: file://$(PWD)/htmlcov/index.html"
+
+test-dryrun: ## Test dry-run export with sample docs
+test-dryrun: cmd-exists-uv
+	@echo "$(BLUE)Testing dry-run export functionality...$(RESET)"
+	@echo "$(YELLOW)Setting up test environment...$(RESET)"
+	@cd tests/test-project && uv --native-tls sync
+	@echo "$(CYAN)Installing plugin from local source...$(RESET)"
+	@cd tests/test-project && uv --native-tls pip install -e ../..
+	@echo "$(YELLOW)Cleaning previous export and temp files...$(RESET)"
+	@rm -rf tests/test-project/confluence-export tests/test-project/site
+	@rm -f tests/test-project/confluence_page_*.html
+	@echo "$(CYAN)Building docs with dry-run mode...$(RESET)"
+	@cd tests/test-project && uv --native-tls run mkdocs build
+	@echo ""
+	@echo "$(GREEN)✓ Dry-run export complete$(RESET)"
+	@echo "$(CYAN)Export location: tests/test-project/confluence-export/$(RESET)"
+	@echo ""
+	@echo "$(YELLOW)Exported structure:$(RESET)"
+	@tree tests/test-project/confluence-export/ -L 2 2>/dev/null || find tests/test-project/confluence-export -type f | head -20
+	@echo ""
+	@echo "$(YELLOW)Total pages exported:$(RESET)"
+	@find tests/test-project/confluence-export -name "page.html" | wc -l | awk '{print "  " $$1 " pages"}'
 
 ##@ Development
 py-pre-commit: ## Install prek hooks

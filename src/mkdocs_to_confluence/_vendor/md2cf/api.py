@@ -86,8 +86,7 @@ class MinimalConfluence:
         content_type="page",
         additional_expansions=None,
     ):
-        """
-        Create a new page in a space
+        """Create a new page in a space
 
         Args:
             title (str): the title for the page
@@ -137,8 +136,7 @@ class MinimalConfluence:
         update_message=None,
         labels=None,
     ):
-        """
-        Create a new page in a space
+        """Create a new page in a space
 
         Args:
             space (str): the Confluence space for the page

@@ -18,8 +18,10 @@ import mistune
 import requests
 from mkdocs.config import config_options
 from mkdocs.plugins import BasePlugin
-from mkdocs_to_confluence._vendor.md2cf.confluence_renderer import ConfluenceRenderer
 from requests.auth import AuthBase
+
+from mkdocs_to_confluence._vendor.md2cf.confluence_renderer import ConfluenceRenderer
+from mkdocs_to_confluence.exporter import ConfluenceExporter
 
 TEMPLATE_BODY = "<p> TEMPLATE </p>"
 
@@ -74,6 +76,7 @@ class MkdocsWithConfluence(BasePlugin):
         ("verbose", config_options.Type(bool, default=False)),
         ("debug", config_options.Type(bool, default=False)),
         ("dryrun", config_options.Type(bool, default=False)),
+        ("export_dir", config_options.Type(str, default="confluence-export")),
     )
 
     def __init__(self):
@@ -86,6 +89,60 @@ class MkdocsWithConfluence(BasePlugin):
         self.session = requests.Session()
         self.page_attachments = {}
         self.dryrun = False
+        self.exporter = None
+
+    def _safe_request(self, method, url, context, **kwargs):
+        """Execute HTTP request with connection error handling.
+
+        Wraps requests to catch connection errors and log them properly
+        instead of crashing the build process.
+
+        Args:
+            method: HTTP method ('get', 'post', 'put')
+            url: Request URL
+            context: Description of operation for error messages
+            **kwargs: Additional arguments passed to requests method
+
+        Returns:
+            Response object if successful, None if connection error occurred
+
+        """
+        try:
+            response = getattr(self.session, method)(url, **kwargs)
+            response.raise_for_status()
+            return response
+        except requests.exceptions.ConnectionError as e:
+            error_msg = str(e)
+            if "Failed to resolve" in error_msg or "nodename nor servname" in error_msg:
+                host = self.config.get('host_url', 'unknown')
+                logger.error(
+                    f"Cannot connect to Confluence: DNS resolution failed for '{host}'. "
+                    f"Context: {context}"
+                )
+            elif "Connection refused" in error_msg:
+                host = self.config.get('host_url', 'unknown')
+                logger.error(
+                    f"Cannot connect to Confluence: Connection refused to '{host}'. "
+                    f"Context: {context}"
+                )
+            else:
+                logger.error(
+                    f"Cannot connect to Confluence: Network error. "
+                    f"Context: {context}. Error: {error_msg}"
+                )
+            return None
+        except requests.exceptions.Timeout as e:
+            logger.error(
+                f"Confluence request timed out. "
+                f"Context: {context}. Error: {e}"
+            )
+            return None
+        except requests.exceptions.RequestException as e:
+            logger.error(
+                f"Confluence request failed. "
+                f"Context: {context}. Error: {e}"
+            )
+            return None
 
     def on_nav(self, nav, config, files):
         """Build navigation structure from MkDocs nav."""
@@ -151,8 +208,13 @@ class MkdocsWithConfluence(BasePlugin):
         if self.config["dryrun"]:
             logger.warning("Mkdocs With Confluence - DRYRUN MODE turned ON")
             self.dryrun = True
+            # Initialize exporter for dry-run mode
+            export_dir = Path(self.config["export_dir"])
+            self.exporter = ConfluenceExporter(export_dir)
+            logger.info(f"Mkdocs With Confluence: Exporting to {export_dir}")
         else:
             self.dryrun = False
+            self.exporter = None
 
         if "enabled_if_env" in self.config:
             env_name = self.config["enabled_if_env"]
@@ -190,6 +252,7 @@ class MkdocsWithConfluence(BasePlugin):
                 - parent: Direct parent page title
                 - parent1: Second-level parent page title
                 - main_parent: Root parent from config or space
+
         """
         if self.config["debug"]:
             logger.debug("Get section first parent title...: ")
@@ -254,6 +317,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Returns:
             list: List of attachment file paths found in the markdown
+
         """
         attachments = []
         try:
@@ -289,6 +353,7 @@ class MkdocsWithConfluence(BasePlugin):
             tuple: (confluence_body, temp_file_path) where:
                 - confluence_body: Converted Confluence HTML content
                 - temp_file_path: Path to the temporary file created
+
         """
         # Replace image tags for Confluence format
         new_markdown = re.sub(
@@ -299,20 +364,16 @@ class MkdocsWithConfluence(BasePlugin):
         # Convert to Confluence format
         confluence_body = self.confluence_mistune(new_markdown)
 
-        # Write to temp file
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
-            f.write(confluence_body)
-            f.flush()  # Explicitly flush buffer to disk to prevent 0-byte files
-            temp_name = f.name
-
         if self.config["debug"]:
             logger.info(confluence_body)
+            # Save debug HTML file to a temp directory with proper cleanup
+            debug_dir = Path(tempfile.gettempdir()) / "mkdocs-to-confluence-debug"
+            debug_dir.mkdir(exist_ok=True)
+            debug_file = debug_dir / f"confluence_page_{page_name.replace(' ', '_')}.html"
+            debug_file.write_text(confluence_body, encoding="utf-8")
+            logger.debug(f"Debug HTML saved to: {debug_file}")
 
-        # Create a copy with a descriptive name
-        new_name = "confluence_page_" + page_name.replace(" ", "_") + ".html"
-        shutil.copy(temp_name, new_name)
-
-        return confluence_body, temp_name
+        return confluence_body
 
     def _ensure_parent_hierarchy(self, parent, parent1, main_parent):
         """Ensure parent page hierarchy exists in Confluence.
@@ -327,6 +388,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Returns:
             int or None: The parent page ID, or None if it couldn't be created
+
         """
         parent_id = self.find_page_id(parent)
         self.wait_until(parent_id, 1, 20)
@@ -379,6 +441,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Returns:
             bool: True if sync was successful, False if aborted
+
         """
         page_id = self.find_page_id(page_title)
 
@@ -481,7 +544,7 @@ class MkdocsWithConfluence(BasePlugin):
                 attachments = self._extract_attachments(markdown)
 
                 # Convert markdown to Confluence format
-                confluence_body, temp_name = self._convert_to_confluence_format(markdown, page.title)
+                confluence_body = self._convert_to_confluence_format(markdown, page.title)
 
                 if self.config["debug"]:
                     logger.debug(
@@ -493,13 +556,25 @@ class MkdocsWithConfluence(BasePlugin):
                         f"BODY: {confluence_body}\n"
                     )
 
-                # Sync page to Confluence (create or update)
-                sync_success = self._sync_page(page.title, parent, parent1, main_parent, confluence_body)
-                if not sync_success:
-                    return markdown
+                # Sync page to Confluence or add to exporter
+                if self.dryrun and self.exporter:
+                    # Add page to exporter queue for dry-run export
+                    self.exporter.add_page(
+                        title=page.title,
+                        parent=parent if parent != main_parent else None,
+                        space=self.config["space"],
+                        confluence_body=confluence_body,
+                        attachments=attachments,
+                    )
+                    logger.info(f"Mkdocs With Confluence: {page.title} - *QUEUED FOR EXPORT*")
+                else:
+                    # Normal mode: sync to Confluence (create or update)
+                    sync_success = self._sync_page(page.title, parent, parent1, main_parent, confluence_body)
+                    if not sync_success:
+                        return markdown
 
-                if attachments:
-                    self.page_attachments[page.title] = attachments
+                    if attachments:
+                        self.page_attachments[page.title] = attachments
 
             except IndexError as e:
                 if self.config["debug"]:
@@ -526,6 +601,14 @@ class MkdocsWithConfluence(BasePlugin):
     def on_page_content(self, html, page, config, files):
         """Process HTML content."""
         return html
+
+    def on_post_build(self, config):
+        """Export all queued pages after build completes."""
+        if self.dryrun and self.exporter:
+            logger.info("Mkdocs With Confluence: Exporting all pages to filesystem...")
+            self.exporter.export_all()
+            export_dir = Path(self.config["export_dir"])
+            logger.info(f"Mkdocs With Confluence: Export complete! Files saved to {export_dir.absolute()}")
 
     def __get_page_url(self, section):
         """Extract page URL from section string."""
@@ -643,8 +726,12 @@ class MkdocsWithConfluence(BasePlugin):
         if self.config["debug"]:
             logger.info(f"URL: {url}")
 
-        r = self.session.get(url, headers=headers, params={"filename": name, "expand": "version"})
-        r.raise_for_status()
+        r = self._safe_request(
+            "get", url, f"getting attachment '{name}'",
+            headers=headers, params={"filename": name, "expand": "version"}
+        )
+        if r is None:
+            return None
         with nostdout():
             response_json = r.json()
         if response_json["size"]:
@@ -671,8 +758,9 @@ class MkdocsWithConfluence(BasePlugin):
         if not self.dryrun:
             with open(Path(filepath), "rb") as file_handle:
                 files = {"file": (filename, file_handle, content_type), "comment": message}
-                r = self.session.post(url, headers=headers, files=files)
-                r.raise_for_status()
+                r = self._safe_request("post", url, f"updating attachment '{filename}'", headers=headers, files=files)
+                if r is None:
+                    return
                 logger.info(r.json())
                 if r.status_code == 200:
                     logger.info("OK!")
@@ -700,9 +788,10 @@ class MkdocsWithConfluence(BasePlugin):
         if not self.dryrun:
             with open(filepath, "rb") as file_handle:
                 files = {"file": (filename, file_handle, content_type), "comment": message}
-                r = self.session.post(url, headers=headers, files=files)
+                r = self._safe_request("post", url, f"creating attachment '{filename}'", headers=headers, files=files)
+                if r is None:
+                    return
                 logger.info(r.json())
-                r.raise_for_status()
                 if r.status_code == 200:
                     logger.info("OK!")
                 else:
@@ -716,8 +805,9 @@ class MkdocsWithConfluence(BasePlugin):
         url = self.config["host_url"] + "?title=" + name_confl + "&spaceKey=" + self.config["space"] + "&expand=history"
         if self.config["debug"]:
             logger.info(f"URL: {url}")
-        r = self.session.get(url)
-        r.raise_for_status()
+        r = self._safe_request("get", url, f"finding page ID for '{page_name}'")
+        if r is None:
+            return None
         with nostdout():
             response_json = r.json()
         if response_json["results"]:
@@ -750,8 +840,9 @@ class MkdocsWithConfluence(BasePlugin):
         if self.config["debug"]:
             logger.info(f"DATA: {data}")
         if not self.dryrun:
-            r = self.session.post(url, json=data, headers=headers)
-            r.raise_for_status()
+            r = self._safe_request("post", url, f"creating page '{page_name}'", json=data, headers=headers)
+            if r is None:
+                return
             if r.status_code == 200:
                 if self.config["debug"]:
                     logger.info("OK!")
@@ -767,6 +858,9 @@ class MkdocsWithConfluence(BasePlugin):
             logger.info(f" * Mkdocs With Confluence: Update PAGE ID: {page_id}, PAGE NAME: {page_name}")
         if page_id:
             page_version = self.find_page_version(page_name)
+            if page_version is None:
+                logger.error(f"Cannot update page '{page_name}': unable to retrieve version")
+                return
             page_version = page_version + 1
             url = self.config["host_url"] + "/" + page_id
             if self.config["debug"]:
@@ -783,8 +877,9 @@ class MkdocsWithConfluence(BasePlugin):
             }
 
             if not self.dryrun:
-                r = self.session.put(url, json=data, headers=headers)
-                r.raise_for_status()
+                r = self._safe_request("put", url, f"updating page '{page_name}'", json=data, headers=headers)
+                if r is None:
+                    return
                 if r.status_code == 200:
                     if self.config["debug"]:
                         logger.info("OK!")
@@ -801,8 +896,9 @@ class MkdocsWithConfluence(BasePlugin):
             logger.info(f"  * Mkdocs With Confluence: Find PAGE VERSION, PAGE NAME: {page_name}")
         name_confl = page_name.replace(" ", "+")
         url = self.config["host_url"] + "?title=" + name_confl + "&spaceKey=" + self.config["space"] + "&expand=version"
-        r = self.session.get(url)
-        r.raise_for_status()
+        r = self._safe_request("get", url, f"finding page version for '{page_name}'")
+        if r is None:
+            return None
         with nostdout():
             response_json = r.json()
         if response_json["results"] and len(response_json["results"]) > 0:
@@ -819,10 +915,13 @@ class MkdocsWithConfluence(BasePlugin):
         if self.config["debug"]:
             logger.info(f"  * Mkdocs With Confluence: Find PARENT OF PAGE, PAGE NAME: {name}")
         idp = self.find_page_id(name)
+        if idp is None:
+            return None
         url = self.config["host_url"] + "/" + idp + "?expand=ancestors"
 
-        r = self.session.get(url)
-        r.raise_for_status()
+        r = self._safe_request("get", url, f"finding parent of page '{name}'")
+        if r is None:
+            return None
         with nostdout():
             response_json = r.json()
         if response_json and "ancestors" in response_json and len(response_json["ancestors"]) > 0:
@@ -845,6 +944,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Returns:
             True if condition is met, False otherwise
+
         """
         for retry in range(max_retries):
             start = time.time()

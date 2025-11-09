@@ -1,0 +1,9 @@
+# Build outputs
+site/
+confluence-export/
+
+# Python
+.venv/
+uv.lock
+__pycache__/
+*.pyc

@@ -7,14 +7,10 @@ from collections import Counter
 from pathlib import Path
 from typing import List
 
+import md2cf.document
 import rich.table
 import rich.text
 import rich.tree
-from requests import HTTPError
-from rich import box
-from rich_argparse import RichHelpFormatter
-
-import md2cf.document
 from md2cf import api
 from md2cf.console_output import (
     console,
@@ -25,6 +21,9 @@ from md2cf.console_output import (
 from md2cf.document import Page
 from md2cf.tui import Md2cfTUI
 from md2cf.upsert import upsert_attachment, upsert_page
+from requests import HTTPError
+from rich import box
+from rich_argparse import RichHelpFormatter
 
 
 def get_parser():
@@ -263,8 +262,8 @@ def get_parser():
 
 def print_missing_parameter(parameter_name: str):
     error_console.log(
-        ":x: Missing required parameter: {}\n"
-        "Use {} --help to get help.".format(parameter_name, sys.argv[0])
+        f":x: Missing required parameter: {parameter_name}\n"
+        f"Use {sys.argv[0]} --help to get help."
     )
 
 
@@ -450,12 +449,12 @@ def main():
             except HTTPError as e:
                 if args.debug:
                     console.print_exception(show_locals=True)
-                error = "{} - {}".format(str(e), e.response.content)
+                error = f"{str(e)} - {e.response.content}"
                 something_went_wrong = True
             except Exception as e:
                 if args.debug:
                     console.print_exception(show_locals=True)
-                error = "[red]ERROR:[default] {}".format(str(e))
+                error = f"[red]ERROR:[default] {str(e)}"
                 something_went_wrong = True
 
             tui.set_item_progress_label(page.original_title, "")
@@ -492,12 +491,12 @@ def main():
             except HTTPError as e:
                 if args.debug:
                     console.print_exception(show_locals=True)
-                error = "{} - {}".format(str(e), e.response.content)
+                error = f"{str(e)} - {e.response.content}"
                 something_went_wrong = True
             except Exception as e:
                 if args.debug:
                     console.print_exception(show_locals=True)
-                error = "[red]ERROR:[default] {}".format(str(e))
+                error = f"[red]ERROR:[default] {str(e)}"
                 something_went_wrong = True
 
     if something_went_wrong:

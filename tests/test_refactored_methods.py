@@ -1,10 +1,9 @@
 """Tests for refactored methods in MkdocsWithConfluence plugin."""
 
-from unittest.mock import MagicMock, Mock
+from unittest.mock import Mock
 
 from mkdocs_to_confluence.plugin import MkdocsWithConfluence
-from tests.fixtures.configs import CONFIG_DEBUG_MODE, MINIMAL_CONFIG
-
+from tests.fixtures.configs import MINIMAL_CONFIG
 
 # ============================================================================
 # Tests for _resolve_page_parents()
@@ -156,71 +155,44 @@ def test_extract_attachments_ignores_http_urls():
 
 def test_convert_to_confluence_format_replaces_image_tags():
     """Test _convert_to_confluence_format() replaces image tags correctly."""
-    from pathlib import Path
-
     plugin = MkdocsWithConfluence()
     plugin.config = MINIMAL_CONFIG.copy()
 
     markdown = '<img src="file:///tmp/test.png" style="page-break-inside: avoid;">'
-    confluence_body, temp_path = plugin._convert_to_confluence_format(markdown, "TestPage")
+    confluence_body = plugin._convert_to_confluence_format(markdown, "TestPage")
 
     # Verify image tag was transformed
     assert '<img src="file:///tmp/' not in confluence_body
     assert 'ac:image' in confluence_body or '<p>' in confluence_body
 
-    # Verify temp file exists and is not empty
-    temp_file = Path(temp_path)
-    assert temp_file.exists()
-    assert temp_file.stat().st_size > 0
-
-    # Verify copy file was created
-    copy_file = Path("confluence_page_TestPage.html")
-    assert copy_file.exists()
-
-    # Cleanup
-    temp_file.unlink()
-    copy_file.unlink()
+    # Verify content is not empty
+    assert len(confluence_body) > 0
 
 
 def test_convert_to_confluence_format_creates_temp_file():
-    """Test _convert_to_confluence_format() creates temp file with content."""
-    from pathlib import Path
-
+    """Test _convert_to_confluence_format() converts content correctly."""
     plugin = MkdocsWithConfluence()
     plugin.config = MINIMAL_CONFIG.copy()
 
     markdown = "# Test Header\n\nTest content"
-    confluence_body, temp_path = plugin._convert_to_confluence_format(markdown, "TestPage")
+    confluence_body = plugin._convert_to_confluence_format(markdown, "TestPage")
 
-    # Verify return values
+    # Verify return value
     assert isinstance(confluence_body, str)
     assert len(confluence_body) > 0
-    assert isinstance(temp_path, str)
-
-    # Verify temp file exists
-    temp_file = Path(temp_path)
-    assert temp_file.exists()
-    assert temp_file.stat().st_size > 0
-
-    # Cleanup
-    temp_file.unlink()
-    Path("confluence_page_TestPage.html").unlink(missing_ok=True)
+    # Check that markdown was converted to HTML
+    assert '<h1>' in confluence_body or 'Test Header' in confluence_body
 
 
 def test_convert_to_confluence_format_handles_special_chars_in_page_name():
     """Test _convert_to_confluence_format() handles special characters in page names."""
-    from pathlib import Path
-
     plugin = MkdocsWithConfluence()
     plugin.config = MINIMAL_CONFIG.copy()
 
     markdown = "# Test"
-    confluence_body, temp_path = plugin._convert_to_confluence_format(markdown, "Page With Spaces")
+    confluence_body = plugin._convert_to_confluence_format(markdown, "Page With Spaces")
 
-    # Verify copy file has underscores instead of spaces
-    copy_file = Path("confluence_page_Page_With_Spaces.html")
-    assert copy_file.exists()
-
-    # Cleanup
-    Path(temp_path).unlink()
-    copy_file.unlink()
+    # Verify content was converted successfully
+    assert isinstance(confluence_body, str)
+    assert len(confluence_body) > 0
+    assert '<h1>' in confluence_body or 'Test' in confluence_body
