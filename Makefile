@@ -268,10 +268,12 @@ test-install: ## Test installation from TestPyPI
 	@echo "$(YELLOW)Creating test environment...$(RESET)"
 	@rm -rf /tmp/test-mkdocs-to-confluence-env
 	python3 -m venv /tmp/test-mkdocs-to-confluence-env
-	@echo "$(CYAN)Installing from TestPyPI...$(RESET)"
-	/tmp/test-mkdocs-to-confluence-env/bin/pip install --index-url https://test.pypi.org/simple/ --no-deps mkdocs-to-confluence
+	@echo "$(CYAN)Installing from TestPyPI (with dependencies from PyPI)...$(RESET)"
+	/tmp/test-mkdocs-to-confluence-env/bin/pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ mkdocs-to-confluence
 	@echo "$(CYAN)Testing import...$(RESET)"
 	/tmp/test-mkdocs-to-confluence-env/bin/python -c "from mkdocs_to_confluence.plugin import MkdocsWithConfluence; print('✓ Import successful')"
+	@echo "$(CYAN)Testing exporter import...$(RESET)"
+	/tmp/test-mkdocs-to-confluence-env/bin/python -c "from mkdocs_to_confluence.exporter import ConfluenceExporter; print('✓ Exporter import successful')"
 	@echo "$(GREEN)✓ TestPyPI installation verified$(RESET)"
 	@rm -rf /tmp/test-mkdocs-to-confluence-env
 
