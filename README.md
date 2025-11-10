@@ -25,16 +25,23 @@ A MkDocs plugin that automatically publishes your documentation to Atlassian Con
 
 ## Features
 
+### Core Capabilities
 - **Automated Publishing** - Seamlessly publish MkDocs documentation to Confluence during builds
-- **Hierarchy Preservation** - Maintains your MkDocs navigation structure in Confluence
+- **Unlimited Hierarchy Depth** - Support for arbitrary nesting levels 
 - **Smart Updates** - Creates new pages or updates existing ones based on title matching
-- **Image Management** - Automatically uploads and updates images as attachments
+- **Intelligent Update Detection** - Compares content before updating to skip unnecessary changes, reducing version bumps
+- **Image Management** - Automatically uploads and updates images as attachments with SHA1 hash-based change detection
+
+### Authentication & Security
 - **Multiple Authentication Methods** - Supports Basic Auth, API tokens, and OAuth Bearer tokens
 - **Environment Variable Support** - Secure credential management for CI/CD pipelines
+
+### Developer Experience
 - **Dry Run Mode** - Export to filesystem for review before publishing to Confluence
 - **Conditional Publishing** - Enable/disable based on environment variables
 - **Enhanced Markdown** - Extended syntax support including strikethrough, admonitions, task lists, and more
-- **Comprehensive Logging** - Verbose and debug modes for troubleshooting
+- **Comprehensive Logging** - Verbose and debug modes with detailed content comparison
+
 
 ## Installation
 
@@ -129,20 +136,24 @@ plugins:
 
 ### Configuration Parameters
 
-| Parameter | Required | Type | Description |
-|-----------|----------|------|-------------|
-| `host_url` | Yes | string | Confluence REST API URL (e.g., `https://domain.atlassian.net/wiki/rest/api/content`) |
-| `space` | Yes | string | Confluence space key (found in URL: `.../display/SPACEKEY/...`) |
-| `parent_page_name` | No | string | Title of parent page under which documentation will be nested |
-| `username` | Yes* | string | Confluence username (usually email for Cloud) |
-| `password` | No | string | Confluence password (Confluence Server only) |
-| `api_token` | Yes* | string | API token (Cloud) or OAuth token (with `auth_type: bearer`) |
-| `auth_type` | No | string | Authentication type: `basic` (default) or `bearer` |
-| `enabled_if_env` | No | string | Only publish if this environment variable is set to `"1"` |
-| `dryrun` | No | boolean | Preview mode - exports to filesystem instead of Confluence (default: `false`) |
-| `export_dir` | No | string | Directory for dry-run exports (default: `confluence-export`) |
-| `verbose` | No | boolean | Enable verbose logging (default: `false`) |
-| `debug` | No | boolean | Enable debug logging (default: `false`) |
+| Parameter          | Required | Type    | Description                                                                          |
+| ------------------ | -------- | ------- | ------------------------------------------------------------------------------------ |
+| `host_url`         | Yes      | string  | Confluence REST API URL (e.g., `https://domain.atlassian.net/wiki/rest/api/content`) |
+| `space`            | Yes      | string  | Confluence space key (found in URL: `.../display/SPACEKEY/...`)                      |
+| `parent_page_name` | No       | string  | Title of parent page under which documentation will be nested                        |
+| `username`         | Yes*     | string  | Confluence username (usually email for Cloud)                                        |
+| `password`         | No       | string  | Confluence password (Confluence Server only)                                         |
+| `api_token`        | Yes*     | string  | API token (Cloud) or OAuth token (with `auth_type: bearer`)                          |
+| `auth_type`        | No       | string  | Authentication type: `basic` (default) or `bearer`                                   |
+| `enabled_if_env`   | No       | string  | Only publish if this environment variable is set to `"1"`                            |
+| `dryrun`           | No       | boolean | Preview mode - exports to filesystem instead of Confluence (default: `false`)        |
+| `export_dir`       | No       | string  | Directory for dry-run exports (default: `confluence-export`)                         |
+| `verbose`          | No       | boolean | Enable verbose logging with all API operations (default: `false`)                    |
+| `debug`            | No       | boolean | Enable debug logging with content comparison details (default: `false`)              |
+
+**Status Messages (v0.4.0+):**
+- Pages: `Mkdocs With Confluence: {page_title} *NO CHANGE*|*UPDATE*`
+- Attachments: `  * Attachment: {filename} - *NO CHANGE*|*UPDATE*|*NEW*`
 
 *Either `username`/`api_token` or environment variables must be provided.
 
@@ -150,11 +161,11 @@ plugins:
 
 For better security, especially in CI/CD environments, use environment variables:
 
-| Environment Variable | Description |
-|---------------------|-------------|
-| `JIRA_USERNAME` | Confluence username (fallback if `username` not set) |
-| `JIRA_PASSWORD` | Confluence password (fallback if `password` not set) |
-| `CONFLUENCE_API_TOKEN` | API token (fallback if `api_token` not set) |
+| Environment Variable   | Description                                          |
+| ---------------------- | ---------------------------------------------------- |
+| `JIRA_USERNAME`        | Confluence username (fallback if `username` not set) |
+| `JIRA_PASSWORD`        | Confluence password (fallback if `password` not set) |
+| `CONFLUENCE_API_TOKEN` | API token (fallback if `api_token` not set)          |
 
 **Example with environment variables:**
 
@@ -188,15 +199,15 @@ All standard Markdown features are supported:
 
 This plugin uses an enhanced fork of md2cf that supports:
 
-| Feature | Syntax | Confluence Output |
-|---------|--------|-------------------|
-| **Strikethrough** | `~~deleted text~~` | ~~deleted~~ |
-| **Highlight** | `==marked text==` | ==highlighted== |
-| **Insert** | `++inserted text++` | ++inserted++ |
-| **Task Lists** | `- [ ] Todo` / `- [x] Done` | Checkboxes |
-| **Admonitions** | Note/Warning/Tip blocks | Info/Warning panels |
-| **Spoilers** | Expandable sections | Expand macro |
-| **Block Images** | Standard image syntax | Full-width images |
+| Feature           | Syntax                      | Confluence Output   |
+| ----------------- | --------------------------- | ------------------- |
+| **Strikethrough** | `~~deleted text~~`          | ~~deleted~~         |
+| **Highlight**     | `==marked text==`           | ==highlighted==     |
+| **Insert**        | `++inserted text++`         | ++inserted++        |
+| **Task Lists**    | `- [ ] Todo` / `- [x] Done` | Checkboxes          |
+| **Admonitions**   | Note/Warning/Tip blocks     | Info/Warning panels |
+| **Spoilers**      | Expandable sections         | Expand macro        |
+| **Block Images**  | Standard image syntax       | Full-width images   |
 
 ### Why a Fork?
 

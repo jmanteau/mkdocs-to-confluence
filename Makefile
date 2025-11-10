@@ -258,7 +258,7 @@ test-upload: cmd-exists-uv
 	@echo "$(YELLOW)Username: __token__$(RESET)"
 	@echo "$(YELLOW)Password: Your TestPyPI API token$(RESET)"
 	uv --native-tls pip install --upgrade twine
-	uv --native-tls run python -m twine upload --repository testpypi dist/*
+	uv --native-tls run python -m twine upload --verbose --repository testpypi dist/*
 	@echo "$(GREEN)✓ Upload to TestPyPI complete$(RESET)"
 	@echo "$(CYAN)Test installation with:$(RESET)"
 	@echo "  make test-install"

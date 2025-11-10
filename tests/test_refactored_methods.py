@@ -19,11 +19,11 @@ def test_resolve_page_parents_with_no_ancestors():
     page = Mock()
     page.ancestors = []
 
-    parent, parent1, main_parent = plugin._resolve_page_parents(page)
+    parent_chain = plugin._resolve_page_parents(page)
 
-    assert parent == MINIMAL_CONFIG["parent_page_name"]
-    assert parent1 == MINIMAL_CONFIG["parent_page_name"]
-    assert main_parent == MINIMAL_CONFIG["parent_page_name"]
+    # With no ancestors, should return just the main parent
+    assert len(parent_chain) == 1
+    assert parent_chain[0] == MINIMAL_CONFIG["parent_page_name"]
 
 
 def test_resolve_page_parents_with_one_ancestor():
@@ -37,11 +37,12 @@ def test_resolve_page_parents_with_one_ancestor():
     ancestor.__repr__ = Mock(return_value="Section(title='Parent Section')")
     page.ancestors = [ancestor]
 
-    parent, parent1, main_parent = plugin._resolve_page_parents(page)
+    parent_chain = plugin._resolve_page_parents(page)
 
-    assert parent == "Parent Section"
-    assert parent1 == MINIMAL_CONFIG["parent_page_name"]
-    assert main_parent == MINIMAL_CONFIG["parent_page_name"]
+    # Should return: [main_parent, direct_parent]
+    assert len(parent_chain) == 2
+    assert parent_chain[0] == MINIMAL_CONFIG["parent_page_name"]  # root
+    assert parent_chain[1] == "Parent Section"  # direct parent
 
 
 def test_resolve_page_parents_with_multiple_ancestors():
@@ -57,11 +58,15 @@ def test_resolve_page_parents_with_multiple_ancestors():
     ancestor2.__repr__ = Mock(return_value="Section(title='Grandparent')")
     page.ancestors = [ancestor1, ancestor2]
 
-    parent, parent1, main_parent = plugin._resolve_page_parents(page)
+    parent_chain = plugin._resolve_page_parents(page)
 
-    assert parent == "Direct Parent"
-    assert parent1 == "Grandparent"
-    assert main_parent == MINIMAL_CONFIG["parent_page_name"]
+    # Should return: [main_parent, grandparent, direct_parent]
+    # Ancestors are ordered [0]=direct parent, [1]=grandparent
+    # So reversed: [main_parent, grandparent, direct_parent]
+    assert len(parent_chain) == 3
+    assert parent_chain[0] == MINIMAL_CONFIG["parent_page_name"]  # root
+    assert parent_chain[1] == "Grandparent"  # second level
+    assert parent_chain[2] == "Direct Parent"  # direct parent
 
 
 def test_resolve_page_parents_uses_space_when_no_parent_page_name():
@@ -74,11 +79,11 @@ def test_resolve_page_parents_uses_space_when_no_parent_page_name():
     page = Mock()
     page.ancestors = []
 
-    parent, parent1, main_parent = plugin._resolve_page_parents(page)
+    parent_chain = plugin._resolve_page_parents(page)
 
-    assert parent is None
-    assert parent1 == MINIMAL_CONFIG["space"]
-    assert main_parent == MINIMAL_CONFIG["space"]
+    # Should use space as the root when parent_page_name is None
+    assert len(parent_chain) == 1
+    assert parent_chain[0] == MINIMAL_CONFIG["space"]
 
 
 # ============================================================================
