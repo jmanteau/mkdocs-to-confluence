@@ -326,8 +326,14 @@ git-commit: ## Commit release changes (version, changelog, vendored deps)
 		echo "$(RED)Commit cancelled$(RESET)"; \
 		exit 1; \
 	fi; \
+	echo ""; \
+	read -p "Enter commit message: " message; \
+	if [ -z "$$message" ]; then \
+		echo "$(RED)Commit message cannot be empty$(RESET)"; \
+		exit 1; \
+	fi; \
 	git add -A; \
-	git commit -m "Release v$$VERSION - Vendor md2cf, add test infrastructure"; \
+	git commit -m "$$message"; \
 	echo "$(GREEN)✓ Changes committed$(RESET)"
 
 git-tag: version ## Create and push git tag for current version
