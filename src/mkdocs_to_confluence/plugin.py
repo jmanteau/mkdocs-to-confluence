@@ -32,18 +32,30 @@ class BearerAuth(AuthBase):
     """Attaches OAuth Bearer Token Authentication to the given Request object."""
 
     def __init__(self, token):
-        """Initialize with bearer token."""
+        """Store the OAuth bearer token used for authentication.
+
+        Args:
+            token (str): OAuth access token issued by Atlassian.
+        """
         self.token = token
 
     def __call__(self, r):
-        """Apply Bearer token to request headers."""
+        """Attach the bearer token to an outgoing request.
+
+        Args:
+            r (requests.PreparedRequest): The request object to mutate in place.
+
+        Returns:
+            requests.PreparedRequest: The same request instance, with the
+            Authorization header populated.
+        """
         r.headers["Authorization"] = f"Bearer {self.token}"
         return r
 
 
 @contextlib.contextmanager
 def nostdout():
-    """Suppress stdout temporarily."""
+    """Temporarily silence ``sys.stdout`` within the managed context."""
     save_stdout = sys.stdout
     sys.stdout = DummyFile()
     yield
@@ -146,7 +158,14 @@ class MkdocsWithConfluence(BasePlugin):
             return None
 
     def on_nav(self, nav, config, files):
-        """Build navigation structure from MkDocs nav."""
+        """Build navigation structure from MkDocs nav.
+
+        Args:
+            nav (mkdocs.structure.nav.Navigation): Navigation object produced by MkDocs.
+            config (mkdocs.config.base.Config): Active MkDocs configuration.
+            files (mkdocs.structure.files.Files): Collection of files included in the build.
+
+        """
         MkdocsWithConfluence.tab_nav = []
         navigation_items = nav.__repr__()
 
@@ -188,7 +207,12 @@ class MkdocsWithConfluence(BasePlugin):
                 MkdocsWithConfluence.tab_nav.append(s)
 
     def on_files(self, files, config):
-        """Count documentation pages."""
+        """Count documentation pages.
+
+        Args:
+            files (mkdocs.structure.files.Files): Files selected for the build.
+            config (mkdocs.config.base.Config): Active MkDocs configuration.
+        """
         pages = files.documentation_pages()
         self.flen = len(pages)
         logger.info(f"Number of files in directory tree: {self.flen}")
@@ -196,7 +220,13 @@ class MkdocsWithConfluence(BasePlugin):
             logger.error("No documentation pages in directory tree, please add at least one!")
 
     def on_post_template(self, output_content, template_name, config):
-        """Configure logging mode based on verbosity settings."""
+        """Configure logging mode based on verbosity settings.
+        
+        Args:
+            output_content (str): Rendered output from MkDocs.
+            template_name (str): Name of the template used for rendering.
+            config (mkdocs.config.base.Config): Active MkDocs configuration.
+        """
         if self.config["verbose"] is False and self.config["debug"] is False:
             self.simple_log = True
             logger.info("Mkdocs With Confluence: Start exporting markdown pages... (simple logging)")
@@ -204,7 +234,11 @@ class MkdocsWithConfluence(BasePlugin):
             self.simple_log = False
 
     def on_config(self, config):
-        """Configure plugin based on environment and settings."""
+        """Configure plugin based on environment and settings.
+        
+        Args:
+            config (mkdocs.config.base.Config): Active MkDocs configuration being initialized.
+        """
         # Always set dryrun regardless of enabled status
         if self.config["dryrun"]:
             logger.warning("Mkdocs With Confluence - DRYRUN MODE turned ON")
@@ -246,7 +280,8 @@ class MkdocsWithConfluence(BasePlugin):
         """Resolve parent page hierarchy for a given page.
 
         Args:
-            page: The MkDocs page object
+            page (mkdocs.structure.pages.Page): Page whose parent chain should
+                be reconstructed from the navigation tree.
 
         Returns:
             list: A list of parent page titles from root (main_parent) to direct parent.
@@ -296,13 +331,13 @@ class MkdocsWithConfluence(BasePlugin):
         return parent_chain
 
     def _extract_attachments(self, markdown):
-        """Extract image attachments from markdown content.
+        """Extract attachment paths referenced within markdown.
 
         Args:
-            markdown: The markdown content string
+            markdown (str): Markdown source of the page currently processed.
 
         Returns:
-            list: List of attachment file paths found in the markdown
+            list: Relative file paths discovered in image references.
 
         """
         attachments = []
@@ -336,7 +371,7 @@ class MkdocsWithConfluence(BasePlugin):
         2. There is exactly one h1 in the entire document
 
         Args:
-            markdown: The markdown content string
+            markdown (str): Markdown content to inspect.
 
         Returns:
             bool: True if h1 should be stripped, False otherwise
@@ -391,7 +426,7 @@ class MkdocsWithConfluence(BasePlugin):
         """Remove the first h1 from markdown content if conditions are met.
 
         Args:
-            markdown: The markdown content string
+            markdown (str): Markdown content to transform.
 
         Returns:
             str: Markdown with h1 removed if applicable, otherwise unchanged
@@ -450,18 +485,51 @@ class MkdocsWithConfluence(BasePlugin):
 
         return '\n'.join(result_lines)
 
+    def _normalize_confluence_content(self, content):
+        """Remove Confluence-added attributes and normalize whitespace.
+
+        Args:
+            content: The content string to normalize
+
+        Returns:
+            str: Normalized content string
+        """
+        if not content:
+            return content
+        import re
+        # Remove ac:schema-version attributes
+        content = re.sub(r'\s+ac:schema-version="[^"]*"', '', content)
+        # Remove ac:macro-id attributes
+        content = re.sub(r'\s+ac:macro-id="[^"]*"', '', content)
+        # Normalize self-closing tags to explicit closing tags
+        # Example: <ri:attachment ... /> becomes <ri:attachment ...></ri:attachment>
+        content = re.sub(r'<(ri:attachment[^>]*)\s*/>', r'<\1></ri:attachment>', content)
+        # Remove trailing spaces before closing > in tags
+        content = re.sub(r'\s+>', '>', content)
+        # Normalize line breaks between XML tags to single space
+        content = re.sub(r'>\s+<', '><', content)
+        # Normalize multiple spaces to single space
+        content = re.sub(r'  +', ' ', content)
+        return content.strip()
+
     def _convert_to_confluence_format(self, markdown, page_name):
         """Convert markdown to Confluence format and create temp file.
 
+        This method processes markdown content by:
+        1. Stripping h1 headings if strip_h1 option is enabled
+        2. Converting image tags to Confluence format
+        3. Converting markdown to Confluence HTML using Mistune
+        4. Optionally saving debug HTML files
+
         Args:
-            markdown: The markdown content to convert
-            page_name: The name of the page for temp file naming
+            markdown (str): Markdown source to transform into Confluence storage format.
+            page_name (str): Logical page name used when generating debug artifacts.
 
         Returns:
-            tuple: (confluence_body, temp_file_path) where:
-                - confluence_body: Converted Confluence HTML content
-                - temp_file_path: Path to the temporary file created
+            str: The converted Confluence HTML content
 
+        Note:
+            This method modifies the markdown content in-place before conversion.
         """
         # Strip h1 if configured
         if self.config.get("strip_h1", False):
@@ -560,13 +628,30 @@ class MkdocsWithConfluence(BasePlugin):
     def _sync_page(self, page_title, parent_chain, confluence_body):
         """Synchronize a page to Confluence (create or update).
 
+        This method handles the complete synchronization process for a single page,
+        including determining whether to create a new page or update an existing one,
+        validating parent relationships, comparing content changes, and performing
+        the appropriate Confluence API operations.
+
+        For existing pages:
+        - Validates that the page has the correct parent
+        - Fetches current content and compares with new content
+        - Updates the page if content has changed
+        - Logs appropriate status messages
+
+        For new pages:
+        - Ensures the parent page hierarchy exists
+        - Creates the new page under the correct parent
+        - Logs the creation status
+
         Args:
-            page_title: Title of the page to sync
-            parent_chain: List of parent page titles from root to direct parent
-            confluence_body: The Confluence-formatted HTML content
+            page_title (str): The title of the page to sync
+            parent_chain (list[str]): Ordered list of parent page titles from root
+                to direct parent. Example: ["Home", "Getting Started", "Installation"]
+            confluence_body (str): The Confluence-formatted HTML content for the page
 
         Returns:
-            bool: True if sync was successful, False if aborted
+            bool: True if sync was successful, False if aborted due to errors
 
         """
         page_id = self.find_page_id(page_title)
@@ -595,27 +680,6 @@ class MkdocsWithConfluence(BasePlugin):
             # Fetch current content to check if update is needed
             current_content = self.get_page_content(page_id)
 
-            # Normalize content for comparison (remove Confluence-added metadata)
-            def normalize_confluence_content(content):
-                """Remove Confluence-added attributes and normalize whitespace."""
-                if not content:
-                    return content
-                import re
-                # Remove ac:schema-version attributes
-                content = re.sub(r'\s+ac:schema-version="[^"]*"', '', content)
-                # Remove ac:macro-id attributes
-                content = re.sub(r'\s+ac:macro-id="[^"]*"', '', content)
-                # Normalize self-closing tags to explicit closing tags
-                # Example: <ri:attachment ... /> becomes <ri:attachment ...></ri:attachment>
-                content = re.sub(r'<(ri:attachment[^>]*)\s*/>', r'<\1></ri:attachment>', content)
-                # Remove trailing spaces before closing > in tags
-                content = re.sub(r'\s+>', '>', content)
-                # Normalize line breaks between XML tags to single space
-                content = re.sub(r'>\s+<', '><', content)
-                # Normalize multiple spaces to single space
-                content = re.sub(r'  +', ' ', content)
-                return content.strip()
-
             if self.config["debug"] and current_content is not None:
                 logger.info(f"Content comparison for '{page_title}':")
                 logger.info(f"  - Current: {len(current_content)} chars, New: {len(confluence_body)} chars")
@@ -632,13 +696,13 @@ class MkdocsWithConfluence(BasePlugin):
                 new_normalized = temp_dir / f"{safe_title}_new_normalized.html"
                 current_file.write_text(current_content, encoding='utf-8')
                 new_file.write_text(confluence_body, encoding='utf-8')
-                current_normalized.write_text(normalize_confluence_content(current_content), encoding='utf-8')
-                new_normalized.write_text(normalize_confluence_content(confluence_body), encoding='utf-8')
+                current_normalized.write_text(self._normalize_confluence_content(current_content), encoding='utf-8')
+                new_normalized.write_text(self._normalize_confluence_content(confluence_body), encoding='utf-8')
                 logger.info(f"  - Debug files: {temp_dir}")
                 logger.info(f"    diff '{current_normalized}' '{new_normalized}'")
 
             # Compare normalized content - only update if changed
-            if current_content is not None and normalize_confluence_content(current_content) == normalize_confluence_content(confluence_body):
+            if current_content is not None and self._normalize_confluence_content(current_content) == self._normalize_confluence_content(confluence_body):
                 if self.config["debug"]:
                     logger.info(f"Page '{page_title}' content unchanged. Skipping update.")
                 logger.info(f"  * Mkdocs With Confluence: {page_title} - *NO CHANGE*")
@@ -693,7 +757,17 @@ class MkdocsWithConfluence(BasePlugin):
         return True
 
     def on_page_markdown(self, markdown, page, config, files):
-        """Process markdown content and publish to Confluence."""
+        """Process markdown content and publish to Confluence.
+
+        Args:
+            markdown (str): Markdown generated by MkDocs for the current page.
+            page (mkdocs.structure.pages.Page): Page metadata within the nav tree.
+            config (mkdocs.config.base.Config): Active MkDocs configuration.
+            files (mkdocs.structure.files.Files): Collection of build file objects.
+
+        Returns:
+            str: Markdown that MkDocs should continue to render or return if syncing fails.
+        """
         MkdocsWithConfluence._id += 1
 
         # Set up authentication based on auth_type
@@ -775,7 +849,16 @@ class MkdocsWithConfluence(BasePlugin):
         return markdown
 
     def on_post_page(self, output, page, config):
-        """Upload attachments after page is rendered."""
+        """Upload attachments after page is rendered.
+
+        Args:
+            output (str): Rendered HTML for the page.
+            page (mkdocs.structure.pages.Page): Page metadata used for lookup.
+            config (mkdocs.config.base.Config): Active MkDocs configuration.
+
+        Returns:
+            str: Rendered HTML that MkDocs should write to disk.
+        """
         site_dir = config.get("site_dir")
         attachments = self.page_attachments.get(page.title, [])
 
@@ -790,11 +873,25 @@ class MkdocsWithConfluence(BasePlugin):
         return output
 
     def on_page_content(self, html, page, config, files):
-        """Process HTML content."""
+        """Process HTML content.
+
+        Args:
+            html (str): Rendered HTML output.
+            page (mkdocs.structure.pages.Page): Page metadata.
+            config (mkdocs.config.base.Config): Active MkDocs configuration.
+            files (mkdocs.structure.files.Files): Collection of build file objects.
+
+        Returns:
+            str: HTML passed through without modification.
+        """
         return html
 
     def on_post_build(self, config):
-        """Export all queued pages after build completes."""
+        """Export all queued pages after build completes.
+
+        Args:
+            config (mkdocs.config.base.Config): Active MkDocs configuration.
+        """
         if self.dryrun and self.exporter:
             logger.info("Mkdocs With Confluence: Exporting all pages to filesystem...")
             self.exporter.export_all()
@@ -802,7 +899,14 @@ class MkdocsWithConfluence(BasePlugin):
             logger.info(f"Mkdocs With Confluence: Export complete! Files saved to {export_dir.absolute()}")
 
     def __get_page_url(self, section):
-        """Extract page URL from section string."""
+        """Extract page URL from section string.
+
+        Args:
+            section (str): String representation of the navigation section entry.
+
+        Returns:
+            str or None: Local page URL when present, otherwise None.
+        """
         match = re.search("url='(.*)'\\)", section)
         if match:
             return match.group(1)[:-1] + ".md"
@@ -810,7 +914,14 @@ class MkdocsWithConfluence(BasePlugin):
         return None
 
     def __get_page_name(self, section):
-        """Extract page name from section string."""
+        """Extract page name from section string.
+
+        Args:
+            section (str): String representation of the navigation section entry.
+
+        Returns:
+            str or None: Basename of the page when present, otherwise None.
+        """
         match = re.search("url='(.*)'\\)", section)
         if match:
             return os.path.basename(match.group(1)[:-1])
@@ -818,7 +929,14 @@ class MkdocsWithConfluence(BasePlugin):
         return None
 
     def __get_section_name(self, section):
-        """Extract section name from section string."""
+        """Extract section name from section string.
+
+        Args:
+            section (str): String representation of the navigation section entry.
+
+        Returns:
+            str or None: Section name when present, otherwise None.
+        """
         if self.config["debug"]:
             logger.debug(f"SECTION name: {section}")
         match = re.search("url='(.*)'\\/", section)
@@ -828,7 +946,14 @@ class MkdocsWithConfluence(BasePlugin):
         return None
 
     def __get_section_title(self, section):
-        """Extract section title from section string."""
+        """Extract section title from section string.
+
+        Args:
+            section (str): String representation of the navigation section entry.
+
+        Returns:
+            str or None: Section title when present, otherwise None.
+        """
         if self.config["debug"]:
             logger.debug(f"SECTION title: {section}")
         try:
@@ -852,7 +977,14 @@ class MkdocsWithConfluence(BasePlugin):
             return None
 
     def __get_page_title(self, section):
-        """Extract page title from section string."""
+        """Extract page title from section string.
+
+        Args:
+            section (str): String representation of the navigation section entry.
+
+        Returns:
+            str or None: Page title when present, otherwise None.
+        """
         try:
             r = re.search("\\s*Page\\(title='(.*)',", section)
             if r:
@@ -871,9 +1003,16 @@ class MkdocsWithConfluence(BasePlugin):
             logger.warning(f"Error extracting page title: {e}")
             return None
 
-    # Adapted from https://stackoverflow.com/a/3431838
+    # Adapted from 
     def get_file_sha1(self, file_path):
-        """Calculate SHA1 hash of file."""
+        """Calculate SHA1 hash of file.
+
+        Args:
+            file_path (str or Path): Path to the file on disk.
+
+        Returns:
+            str: Hexadecimal SHA1 digest used to tag attachment versions.
+        """
         hash_sha1 = hashlib.sha1()  # noqa: S324  # nosec B324  # SHA1 for file versioning, not security
         with open(file_path, "rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):
@@ -881,7 +1020,12 @@ class MkdocsWithConfluence(BasePlugin):
         return hash_sha1.hexdigest()
 
     def add_or_update_attachment(self, page_name, filepath):
-        """Add or update attachment on Confluence page."""
+        """Add or update attachment on Confluence page.
+
+        Args:
+            page_name (str): Title of the page that owns the attachment.
+            filepath (str or Path): File to upload or compare against existing attachments.
+        """
         filename = os.path.basename(filepath)
 
         page_id = self.find_page_id(page_name)
@@ -908,7 +1052,15 @@ class MkdocsWithConfluence(BasePlugin):
                 logger.info("PAGE DOES NOT EXISTS")
 
     def get_attachment(self, page_id, filepath):
-        """Get existing attachment from Confluence page."""
+        """Get existing attachment from Confluence page.
+
+        Args:
+            page_id (str): Identifier of the Confluence page.
+            filepath (str or Path): Path whose filename should be matched remotely.
+
+        Returns:
+            dict or None: Attachment metadata when found, otherwise None.
+        """
         name = os.path.basename(filepath)
         if self.config["debug"]:
             logger.info(f" * Mkdocs With Confluence: Get Attachment: PAGE ID: {page_id}, FILE: {filepath}")
@@ -930,7 +1082,14 @@ class MkdocsWithConfluence(BasePlugin):
             return response_json["results"][0]
 
     def update_attachment(self, page_id, filepath, existing_attachment, message):
-        """Update existing attachment on Confluence page."""
+        """Update existing attachment on Confluence page.
+
+        Args:
+            page_id (str): Identifier of the Confluence page.
+            filepath (str or Path): Local file whose contents replace the attachment.
+            existing_attachment (dict): Metadata returned from get_attachment.
+            message (str): Version comment displayed in Confluence history.
+        """
         if self.config["debug"]:
             logger.info(f" * Mkdocs With Confluence: Update Attachment: PAGE ID: {page_id}, FILE: {filepath}")
 
@@ -960,7 +1119,13 @@ class MkdocsWithConfluence(BasePlugin):
                     logger.error("ERR!")
 
     def create_attachment(self, page_id, filepath, message):
-        """Create new attachment on Confluence page."""
+        """Create new attachment on Confluence page.
+
+        Args:
+            page_id (str): Identifier of the Confluence page.
+            filepath (str or Path): Local file to upload as a new attachment.
+            message (str): Version comment displayed in Confluence history.
+        """
         if self.config["debug"]:
             logger.info(f" * Mkdocs With Confluence: Create Attachment: PAGE ID: {page_id}, FILE: {filepath}")
 
@@ -990,7 +1155,14 @@ class MkdocsWithConfluence(BasePlugin):
                     logger.error("ERR!")
 
     def find_page_id(self, page_name):
-        """Find Confluence page ID by name."""
+        """Find Confluence page ID by name.
+
+        Args:
+            page_name (str): Title of the page to locate.
+
+        Returns:
+            str or None: Page identifier when found, otherwise None.
+        """
         if self.config["debug"]:
             logger.info(f"  * Mkdocs With Confluence: Find Page ID: PAGE NAME: {page_name}")
             name_confl = page_name.replace(" ", "+")
@@ -1044,7 +1216,13 @@ class MkdocsWithConfluence(BasePlugin):
             return None
 
     def add_page(self, page_name, parent_page_id, page_content_in_storage_format):
-        """Create new page in Confluence."""
+        """Create new page in Confluence.
+
+        Args:
+            page_name (str): Title for the new page.
+            parent_page_id (str): Identifier of the parent page.
+            page_content_in_storage_format (str): Body content in Confluence storage format.
+        """
         logger.info(f"  * Mkdocs With Confluence: {page_name} - *NEW PAGE*")
 
         if self.config["debug"]:
@@ -1075,7 +1253,12 @@ class MkdocsWithConfluence(BasePlugin):
                     logger.error("ERR!")
 
     def update_page(self, page_name, page_content_in_storage_format):
-        """Update existing page in Confluence."""
+        """Update existing page in Confluence.
+
+        Args:
+            page_name (str): Title of the page to update.
+            page_content_in_storage_format (str): Body content in Confluence storage format.
+        """
         page_id = self.find_page_id(page_name)
         logger.info(f"  * Mkdocs With Confluence: {page_name} - *UPDATE*")
         if self.config["debug"]:
@@ -1115,7 +1298,14 @@ class MkdocsWithConfluence(BasePlugin):
                 logger.info("PAGE DOES NOT EXIST YET!")
 
     def find_page_version(self, page_name):
-        """Find current version number of Confluence page."""
+        """Find current version number of Confluence page.
+
+        Args:
+            page_name (str): Title of the page to inspect.
+
+        Returns:
+            int or None: Latest version number, or None when the page is missing.
+        """
         if self.config["debug"]:
             logger.info(f"  * Mkdocs With Confluence: Find PAGE VERSION, PAGE NAME: {page_name}")
         name_confl = page_name.replace(" ", "+")
@@ -1135,7 +1325,14 @@ class MkdocsWithConfluence(BasePlugin):
             return None
 
     def find_parent_name_of_page(self, name):
-        """Find parent page name of given Confluence page."""
+        """Find parent page name of given Confluence page.
+
+        Args:
+            name (str): Title of the page whose parent is requested.
+
+        Returns:
+            str or None: Title of the direct parent page, or None when unavailable.
+        """
         if self.config["debug"]:
             logger.info(f"  * Mkdocs With Confluence: Find PARENT OF PAGE, PAGE NAME: {name}")
         idp = self.find_page_id(name)
