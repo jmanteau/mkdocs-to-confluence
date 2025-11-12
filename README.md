@@ -17,6 +17,7 @@ A MkDocs plugin that automatically publishes your documentation to Atlassian Con
   - [Configuration Parameters](#configuration-parameters)
   - [Environment Variables](#environment-variables)
 - [Markdown Support](#markdown-support)
+  - [H1 Title Stripping](#h1-title-stripping)
 - [Usage Examples](#usage-examples)
 - [CI/CD Integration](#cicd-integration)
 - [Troubleshooting](#troubleshooting)
@@ -146,6 +147,7 @@ plugins:
 | `api_token`        | Yes*     | string  | API token (Cloud) or OAuth token (with `auth_type: bearer`)                          |
 | `auth_type`        | No       | string  | Authentication type: `basic` (default) or `bearer`                                   |
 | `enabled_if_env`   | No       | string  | Only publish if this environment variable is set to `"1"`                            |
+| `strip_h1`         | No       | boolean | Remove first h1 heading from page body to avoid title duplication (default: `false`) |
 | `dryrun`           | No       | boolean | Preview mode - exports to filesystem instead of Confluence (default: `false`)        |
 | `export_dir`       | No       | string  | Directory for dry-run exports (default: `confluence-export`)                         |
 | `verbose`          | No       | boolean | Enable verbose logging with all API operations (default: `false`)                    |
@@ -217,6 +219,18 @@ The plugin uses a vendored fork of [md2cf](https://github.com/andrust/md2cf/tree
 - Active maintenance and bug fixes
 
 The fork is vendored (included in the package) to ensure reliability and avoid dependency conflicts.
+
+### H1 Title Stripping
+
+A common practice in Markdown documentation is to start each page with a level-1 heading (h1) that serves as the page title. When published to Confluence, this creates a redundant visual effect where the page title appears twice: once in Confluence's page header and again as the first line of content.
+
+The `strip_h1` option automatically removes this redundant h1 from the page body while preserving it as the Confluence page title.
+
+The h1 will be stripped **only if ALL** of the following conditions are met:
+1. The h1 is the very first content element in the file (ignoring blank lines)
+2. There is exactly one h1 in the entire document
+
+
 
 ## Usage Examples
 

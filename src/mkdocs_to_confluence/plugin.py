@@ -77,6 +77,7 @@ class MkdocsWithConfluence(BasePlugin):
         ("debug", config_options.Type(bool, default=False)),
         ("dryrun", config_options.Type(bool, default=False)),
         ("export_dir", config_options.Type(str, default="confluence-export")),
+        ("strip_h1", config_options.Type(bool, default=False)),
     )
 
     def __init__(self):
@@ -327,6 +328,128 @@ class MkdocsWithConfluence(BasePlugin):
 
         return attachments
 
+    def _should_strip_h1(self, markdown):
+        """Determine if the h1 should be stripped from the markdown content.
+
+        The h1 will be stripped only if ALL of the following conditions are met:
+        1. The h1 is the very first content element (ignoring blank lines)
+        2. There is exactly one h1 in the entire document
+
+        Args:
+            markdown: The markdown content string
+
+        Returns:
+            bool: True if h1 should be stripped, False otherwise
+
+        """
+        if not markdown:
+            return False
+
+        # Remove leading blank lines to find first content
+        lines = markdown.split('\n')
+        first_content_idx = None
+        for idx, line in enumerate(lines):
+            if line.strip():
+                first_content_idx = idx
+                break
+
+        if first_content_idx is None:
+            # Empty document
+            return False
+
+        first_line = lines[first_content_idx].strip()
+
+        # Check if first content is an h1 (both # and === syntax)
+        is_first_h1 = False
+        if first_line.startswith('# '):
+            # ATX-style h1: # Title
+            is_first_h1 = True
+        elif first_content_idx + 1 < len(lines):
+            # Check for Setext-style h1: Title followed by ===
+            next_line = lines[first_content_idx + 1].strip()
+            if next_line and all(c == '=' for c in next_line):
+                is_first_h1 = True
+
+        if not is_first_h1:
+            return False
+
+        # Count total h1 occurrences in the document
+        h1_count = 0
+
+        # Count ATX-style h1s: # Title
+        h1_count += len(re.findall(r'^# [^#]', markdown, re.MULTILINE))
+
+        # Count Setext-style h1s: Title\n===
+        # Look for lines followed by a line of only = characters
+        setext_pattern = r'^.+\n=+\s*$'
+        h1_count += len(re.findall(setext_pattern, markdown, re.MULTILINE))
+
+        # Only strip if there's exactly one h1
+        return h1_count == 1
+
+    def _strip_h1_from_markdown(self, markdown):
+        """Remove the first h1 from markdown content if conditions are met.
+
+        Args:
+            markdown: The markdown content string
+
+        Returns:
+            str: Markdown with h1 removed if applicable, otherwise unchanged
+
+        """
+        if not self._should_strip_h1(markdown):
+            return markdown
+
+        lines = markdown.split('\n')
+        result_lines = []
+        h1_removed = False
+        h1_title = None
+
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+
+            # Skip leading blank lines
+            if not h1_removed and not line.strip():
+                i += 1
+                continue
+
+            # Check for ATX-style h1: # Title
+            if not h1_removed and line.strip().startswith('# '):
+                # Extract title for logging
+                h1_title = line.strip()[2:].strip()
+                # Skip this line (the h1)
+                h1_removed = True
+                i += 1
+                # Skip any immediately following blank lines
+                while i < len(lines) and not lines[i].strip():
+                    i += 1
+                continue
+
+            # Check for Setext-style h1: Title\n===
+            if not h1_removed and i + 1 < len(lines):
+                next_line = lines[i + 1].strip()
+                if next_line and all(c == '=' for c in next_line):
+                    # Extract title for logging
+                    h1_title = line.strip()
+                    # Skip both the title line and the === line
+                    h1_removed = True
+                    i += 2
+                    # Skip any immediately following blank lines
+                    while i < len(lines) and not lines[i].strip():
+                        i += 1
+                    continue
+
+            # Keep this line
+            result_lines.append(line)
+            i += 1
+
+        # Log when h1 is stripped
+        if h1_removed and h1_title:
+            logger.info(f"Stripped h1 heading: '{h1_title}'")
+
+        return '\n'.join(result_lines)
+
     def _convert_to_confluence_format(self, markdown, page_name):
         """Convert markdown to Confluence format and create temp file.
 
@@ -340,6 +463,12 @@ class MkdocsWithConfluence(BasePlugin):
                 - temp_file_path: Path to the temporary file created
 
         """
+        # Strip h1 if configured
+        if self.config.get("strip_h1", False):
+            markdown = self._strip_h1_from_markdown(markdown)
+            if self.config["debug"]:
+                logger.debug(f"strip_h1 enabled for page '{page_name}'")
+
         # Replace image tags for Confluence format
         new_markdown = re.sub(
             r'<img src="file:///tmp/', '<p><ac:image ac:height="350"><ri:attachment ri:filename="', markdown

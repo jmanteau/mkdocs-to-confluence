@@ -13,6 +13,7 @@ MINIMAL_CONFIG = {
     "debug": False,
     "dryrun": False,
     "export_dir": "confluence-export",
+    "strip_h1": False,
 }
 
 # Configuration with API token
