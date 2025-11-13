@@ -10,6 +10,7 @@ import shutil
 import sys
 import tempfile
 import time
+from importlib.metadata import version
 from os import environ
 from pathlib import Path
 from time import sleep
@@ -235,10 +236,17 @@ class MkdocsWithConfluence(BasePlugin):
 
     def on_config(self, config):
         """Configure plugin based on environment and settings.
-        
+
         Args:
             config (mkdocs.config.base.Config): Active MkDocs configuration being initialized.
         """
+        # Print version
+        try:
+            plugin_version = version("mkdocs-to-confluence")
+            logger.info(f"Mkdocs With Confluence v{plugin_version}")
+        except Exception:
+            logger.info("Mkdocs With Confluence (version unknown)")
+
         # Always set dryrun regardless of enabled status
         if self.config["dryrun"]:
             logger.warning("Mkdocs With Confluence - DRYRUN MODE turned ON")
