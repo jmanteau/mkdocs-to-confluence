@@ -96,6 +96,9 @@ class MkdocsWithConfluence(BasePlugin):
         ("dryrun", config_options.Type(bool, default=False)),
         ("export_dir", config_options.Type(str, default="confluence-export")),
         ("strip_h1", config_options.Type(bool, default=False)),
+        ("cleanup_orphaned_pages", config_options.Type(bool, default=False)),
+        ("keep_pages", config_options.Type(list, default=[])),
+        ("page_label", config_options.Type(str, default="auto-generated-docs")),
     )
 
     def __init__(self):
