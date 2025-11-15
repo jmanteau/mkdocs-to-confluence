@@ -1,5 +1,7 @@
 """MkDocs plugin for publishing to Confluence."""
 
+from __future__ import annotations
+
 import contextlib
 import hashlib
 import logging
@@ -9,10 +11,12 @@ import re
 import sys
 import tempfile
 import time
+from collections.abc import Callable
 from importlib.metadata import version
 from os import environ
 from pathlib import Path
 from time import sleep
+from typing import Any
 
 import mistune
 import requests
@@ -770,7 +774,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         return True
 
-    def on_page_markdown(self, markdown, page, config, files):
+    def on_page_markdown(self, markdown: str, page: Any, config: Any, files: Any) -> str:
         """Process markdown content and publish to Confluence.
 
         Args:
@@ -876,7 +880,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         return markdown
 
-    def on_post_page(self, output, page, config):
+    def on_post_page(self, output: str, page: Any, config: Any) -> str:
         """Upload attachments after page is rendered.
 
         Args:
@@ -901,7 +905,7 @@ class MkdocsWithConfluence(BasePlugin):
                 self.add_or_update_attachment(page.title, p)
         return output
 
-    def on_page_content(self, html, page, config, files):
+    def on_page_content(self, html: str, page: Any, config: Any, files: Any) -> str:
         """Process HTML content.
 
         Args:
@@ -916,7 +920,7 @@ class MkdocsWithConfluence(BasePlugin):
         """
         return html
 
-    def on_post_build(self, config):
+    def on_post_build(self, config: Any) -> None:
         """Export all queued pages after build completes.
 
         Args:
@@ -1040,7 +1044,7 @@ class MkdocsWithConfluence(BasePlugin):
             return None
 
     # Adapted from
-    def get_file_sha1(self, file_path):
+    def get_file_sha1(self, file_path: str) -> str:
         """Calculate SHA1 hash of file.
 
         Args:
@@ -1056,7 +1060,7 @@ class MkdocsWithConfluence(BasePlugin):
                 hash_sha1.update(chunk)
         return hash_sha1.hexdigest()
 
-    def add_or_update_attachment(self, page_name, filepath):
+    def add_or_update_attachment(self, page_name: str, filepath: str) -> None:
         """Add or update attachment on Confluence page.
 
         Args:
@@ -1089,7 +1093,7 @@ class MkdocsWithConfluence(BasePlugin):
             if self.config["debug"]:
                 logger.info("PAGE DOES NOT EXISTS")
 
-    def get_attachment(self, page_id, filepath):
+    def get_attachment(self, page_id: str, filepath: str) -> dict[str, Any] | None:
         """Get existing attachment from Confluence page.
 
         Args:
@@ -1195,7 +1199,7 @@ class MkdocsWithConfluence(BasePlugin):
                 else:
                     logger.error("ERR!")
 
-    def find_page_id(self, page_name):
+    def find_page_id(self, page_name: str) -> str | None:
         """Find Confluence page ID by name.
 
         Args:
@@ -1228,7 +1232,7 @@ class MkdocsWithConfluence(BasePlugin):
                 logger.info("PAGE DOES NOT EXIST")
             return None
 
-    def get_page_content(self, page_id):
+    def get_page_content(self, page_id: str) -> str | None:
         """Fetch the current content of a page from Confluence.
 
         Args:
@@ -1342,7 +1346,7 @@ class MkdocsWithConfluence(BasePlugin):
             if self.config["debug"]:
                 logger.info("PAGE DOES NOT EXIST YET!")
 
-    def find_page_version(self, page_name):
+    def find_page_version(self, page_name: str) -> int | None:
         """Find current version number of Confluence page.
 
         Args:
@@ -1370,7 +1374,7 @@ class MkdocsWithConfluence(BasePlugin):
                 logger.info("PAGE DOES NOT EXISTS")
             return None
 
-    def find_parent_name_of_page(self, name):
+    def find_parent_name_of_page(self, name: str) -> str | None:
         """Find parent page name of given Confluence page.
 
         Args:
@@ -1401,7 +1405,9 @@ class MkdocsWithConfluence(BasePlugin):
                 logger.info("PAGE DOES NOT HAVE PARENT")
             return None
 
-    def wait_until(self, condition, interval=0.1, timeout=10, max_retries=3):
+    def wait_until(
+        self, condition: Callable[[], bool] | bool, interval: float = 0.1, timeout: int = 10, max_retries: int = 3
+    ) -> bool:
         """Wait until a condition is met, with retry mechanism.
 
         Args:

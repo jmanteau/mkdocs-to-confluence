@@ -64,7 +64,7 @@ dmypy.json
 TODO.md
 PUBLISHING.md
 uv.lock
-CHANGELOG.md
+/CHANGELOG.md
 site/
 
 # UV / uv lock files (optional - some prefer to commit uv.lock)

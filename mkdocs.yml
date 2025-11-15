@@ -95,6 +95,7 @@ plugins:
             merge_init_into_class: true
             show_signature_annotations: true
             signature_crossrefs: true
+            show_if_no_docstring: false
 
 nav:
   - Home: index.md
