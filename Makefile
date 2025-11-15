@@ -162,19 +162,40 @@ py-ci: py-ruff py-mypy py-test py-security py-complexity ## Run all CI checks
 	@echo "$(GREEN)✓ All CI checks passed$(RESET)"
 
 ##@ Documentation
-docs-serve: ## Serve documentation locally
+readme: ## Generate README.md from template and docs
+readme: cmd-exists-uv
+	@echo "$(BLUE)Generating README.md...$(RESET)"
+	uv --native-tls run python scripts/generate_readme.py
+	@echo "$(GREEN)✓ README.md generated$(RESET)"
+
+docs-serve: ## Serve documentation locally (with live reload)
 docs-serve: cmd-exists-uv
 	uv --native-tls run mkdocs serve -a 0.0.0.0:8000
 
-docs-build: ## Build documentation
-docs-build: cmd-exists-uv
-	uv --native-tls run mkdocs build --strict
+serve: docs-serve
 
-docs-deploy: ## Deploy documentation with version from package (usage: make docs-deploy)
+docs-build: readme ## Build documentation (includes README generation)
+docs-build: cmd-exists-uv
+	@echo "$(BLUE)Building documentation...$(RESET)"
+	uv --native-tls run mkdocs build
+	@echo "$(GREEN)✓ Documentation built$(RESET)"
+
+docs-build-strict: readme ## Build documentation in strict mode (fails on warnings)
+docs-build-strict: cmd-exists-uv
+	@echo "$(BLUE)Building documentation (strict mode)...$(RESET)"
+	uv --native-tls run mkdocs build --strict
+	@echo "$(GREEN)✓ Documentation built$(RESET)"
+
+docs: docs-build ## Alias for docs-build (generate README + build docs)
+
+docs-deploy: readme ## Deploy documentation with version from package
 docs-deploy: cmd-exists-uv
 	@echo "$(BLUE)Getting package version...$(RESET)"
-	@VERSION=$$(uv --native-tls run python -c "from mkdocs_with_confluence._version import __version__; print(__version__)"); \
+	@VERSION=$$(grep '^version =' pyproject.toml | cut -d'"' -f2); \
 	echo "$(YELLOW)Deploying docs for version: $$VERSION$(RESET)"; \
+	echo "$(BLUE)Building documentation...$(RESET)"; \
+	uv --native-tls run mkdocs build; \
+	echo "$(CYAN)Deploying to GitHub Pages...$(RESET)"; \
 	uv --native-tls run mike deploy --push --update-aliases $$VERSION latest; \
 	uv --native-tls run mike set-default --push latest
 	@echo "$(GREEN)✓ Documentation deployed$(RESET)"
@@ -294,12 +315,69 @@ upload: cmd-exists-uv
 	@echo "$(GREEN)✓ Upload to PyPI complete$(RESET)"
 	@echo "$(CYAN)Verify at: https://pypi.org/project/mkdocs-to-confluence/$(RESET)"
 
-release: publish-check test-upload ## Complete release workflow (check, build, test on TestPyPI)
-	@echo "$(GREEN)✓ Release workflow complete$(RESET)"
-	@echo "$(CYAN)Next steps:$(RESET)"
-	@echo "  1. Test installation: make test-install"
-	@echo "  2. Commit changes: make git-commit"
-	@echo "  3. Deploy to production: make deploy-production"
+release: ## Interactive release workflow with version management
+	@echo "$(BLUE)=====================================$(RESET)"
+	@echo "$(BOLD)$(BLUE)    Release Preparation$(RESET)"
+	@echo "$(BLUE)=====================================$(RESET)"
+	@echo ""
+	@CURRENT_VERSION=$$(grep '^version =' pyproject.toml | sed 's/version = "\(.*\)"/\1/'); \
+	CHANGELOG_VERSION=$$(grep -m1 '^\[' CHANGELOG.md | sed 's/\[\([^]]*\)\].*/\1/'); \
+	echo "$(CYAN)Current version in pyproject.toml:$(RESET) $$CURRENT_VERSION"; \
+	echo "$(CYAN)Latest version in CHANGELOG.md:$(RESET)   $$CHANGELOG_VERSION"; \
+	echo ""; \
+	if [ "$$CURRENT_VERSION" != "$$CHANGELOG_VERSION" ]; then \
+		echo "$(YELLOW)⚠️  WARNING: Version mismatch detected!$(RESET)"; \
+		echo ""; \
+	fi; \
+	read -p "Do you want to create a new release? (yes/no): " do_release; \
+	if [ "$$do_release" != "yes" ]; then \
+		echo "$(YELLOW)Release cancelled$(RESET)"; \
+		exit 0; \
+	fi; \
+	echo ""; \
+	read -p "Enter new version (current: $$CURRENT_VERSION): " NEW_VERSION; \
+	if [ -z "$$NEW_VERSION" ]; then \
+		echo "$(RED)Version cannot be empty$(RESET)"; \
+		exit 1; \
+	fi; \
+	if [ "$$NEW_VERSION" = "$$CURRENT_VERSION" ]; then \
+		echo "$(YELLOW)Using existing version: $$NEW_VERSION$(RESET)"; \
+	else \
+		echo "$(CYAN)Updating version to: $$NEW_VERSION$(RESET)"; \
+		sed -i.bak "s/^version = \".*\"/version = \"$$NEW_VERSION\"/" pyproject.toml && rm pyproject.toml.bak; \
+		TODAY=$$(date +%Y-%m-%d); \
+		if grep -q "^\[$$NEW_VERSION\]" CHANGELOG.md; then \
+			echo "$(YELLOW)Version $$NEW_VERSION already exists in CHANGELOG.md, updating date...$(RESET)"; \
+			sed -i.bak "s/^\[$$NEW_VERSION\] - [0-9-]*$$/[$$NEW_VERSION] - $$TODAY/" CHANGELOG.md && rm CHANGELOG.md.bak; \
+		else \
+			echo "$(YELLOW)⚠️  Version $$NEW_VERSION not found in CHANGELOG.md$(RESET)"; \
+			echo "$(YELLOW)Please update CHANGELOG.md manually before continuing$(RESET)"; \
+			read -p "Press Enter when ready to continue..."; \
+		fi; \
+		sed -i.bak "s|^\[Unreleased\]:.*|[Unreleased]: https://github.com/jmanteau/mkdocs-to-confluence/compare/v$$NEW_VERSION...HEAD|" CHANGELOG.md && rm CHANGELOG.md.bak; \
+		PREV_VERSION=$$(grep '^\[' CHANGELOG.md | sed -n '2p' | sed 's/\[\([^]]*\)\].*/\1/'); \
+		if ! grep -q "^\[$$NEW_VERSION\]:" CHANGELOG.md; then \
+			echo "[$$NEW_VERSION]: https://github.com/jmanteau/mkdocs-to-confluence/compare/v$$PREV_VERSION...v$$NEW_VERSION" | \
+			awk 'NR==FNR{line=$$$$0; next} /^\[Unreleased\]:/{print; print line; next}1' - CHANGELOG.md > CHANGELOG.md.tmp && \
+			mv CHANGELOG.md.tmp CHANGELOG.md; \
+		fi; \
+		echo "$(GREEN)✓ Version updated in pyproject.toml and CHANGELOG.md$(RESET)"; \
+	fi; \
+	echo ""; \
+	echo "$(CYAN)Running publish checks...$(RESET)"; \
+	$(MAKE) publish-check; \
+	echo ""; \
+	read -p "Build and upload to TestPyPI? (yes/no): " do_upload; \
+	if [ "$$do_upload" = "yes" ]; then \
+		$(MAKE) test-upload; \
+		echo "$(GREEN)✓ Release workflow complete$(RESET)"; \
+		echo "$(CYAN)Next steps:$(RESET)"; \
+		echo "  1. Test installation: make test-install"; \
+		echo "  2. Commit changes: make git-commit"; \
+		echo "  3. Deploy to production: make deploy-production"; \
+	else \
+		echo "$(YELLOW)Upload skipped$(RESET)"; \
+	fi
 
 version: ## Display current package version
 	@echo "$(CYAN)Current version:$(RESET)"

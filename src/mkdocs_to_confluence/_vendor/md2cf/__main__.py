@@ -12,6 +12,7 @@ import rich.table
 import rich.text
 import rich.tree
 from md2cf import api
+from md2cf.confluence_renderer import convert_markdown_anchor_to_confluence
 from md2cf.console_output import (
     console,
     error_console,
@@ -592,6 +593,7 @@ def update_pages_with_relative_links(
                 page_on_confluence = path_to_page[link_absolute_path]
             except KeyError:
                 if args.ignore_relative_link_errors:
+                    # For error cases, keep the original markdown anchor format
                     page.body = page.body.replace(
                         link_data.replacement,
                         link_data.escaped_original
@@ -608,10 +610,16 @@ def update_pages_with_relative_links(
             # in a dry run we don't actually have page URLs since we never upload
             # anything
             if not args.dry_run:
+                # Convert markdown anchor to Confluence format
+                confluence_anchor = ""
+                if link_data.fragment:
+                    confluence_anchor = "#" + convert_markdown_anchor_to_confluence(
+                        link_data.fragment, page_on_confluence.title
+                    )
+
                 page.body = page.body.replace(
                     link_data.replacement,
-                    confluence.get_url(page_on_confluence)
-                    + (("#" + link_data.fragment) if link_data.fragment else ""),
+                    confluence.get_url(page_on_confluence) + confluence_anchor,
                 )
             page_modified = True
 

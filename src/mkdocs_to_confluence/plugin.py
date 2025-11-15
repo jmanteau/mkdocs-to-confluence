@@ -6,7 +6,6 @@ import logging
 import mimetypes
 import os
 import re
-import shutil
 import sys
 import tempfile
 import time
@@ -37,6 +36,7 @@ class BearerAuth(AuthBase):
 
         Args:
             token (str): OAuth access token issued by Atlassian.
+
         """
         self.token = token
 
@@ -49,6 +49,7 @@ class BearerAuth(AuthBase):
         Returns:
             requests.PreparedRequest: The same request instance, with the
             Authorization header populated.
+
         """
         r.headers["Authorization"] = f"Bearer {self.token}"
         return r
@@ -213,6 +214,7 @@ class MkdocsWithConfluence(BasePlugin):
         Args:
             files (mkdocs.structure.files.Files): Files selected for the build.
             config (mkdocs.config.base.Config): Active MkDocs configuration.
+
         """
         pages = files.documentation_pages()
         self.flen = len(pages)
@@ -227,6 +229,7 @@ class MkdocsWithConfluence(BasePlugin):
             output_content (str): Rendered output from MkDocs.
             template_name (str): Name of the template used for rendering.
             config (mkdocs.config.base.Config): Active MkDocs configuration.
+
         """
         if self.config["verbose"] is False and self.config["debug"] is False:
             self.simple_log = True
@@ -239,6 +242,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Args:
             config (mkdocs.config.base.Config): Active MkDocs configuration being initialized.
+
         """
         # Print version
         try:
@@ -501,6 +505,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Returns:
             str: Normalized content string
+
         """
         if not content:
             return content
@@ -538,6 +543,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Note:
             This method modifies the markdown content in-place before conversion.
+
         """
         # Strip h1 if configured
         if self.config.get("strip_h1", False):
@@ -775,6 +781,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Returns:
             str: Markdown that MkDocs should continue to render or return if syncing fails.
+
         """
         MkdocsWithConfluence._id += 1
 
@@ -787,9 +794,22 @@ class MkdocsWithConfluence(BasePlugin):
                     logger.debug(f"Using OAuth Bearer token authentication for {self.config['username']}")
             else:
                 # Use HTTP Basic Auth (default)
-                self.session.auth = (self.config["username"], token)
+                # Convert None to empty string to avoid deprecation warning in requests 3.0.0
+                username = self.config["username"] or ""
+                if username == "":
+                    logger.warning("Username is not configured. Check plugin configuration or environment variables.")
+                if token == "":
+                    logger.warning("API token is not configured. Check plugin configuration or environment variables.")
+                self.session.auth = (username, token)
         else:
-            self.session.auth = (self.config["username"], self.config["password"])
+            # Convert None to empty string to avoid deprecation warning in requests 3.0.0
+            username = self.config["username"] or ""
+            password = self.config["password"] or ""
+            if username == "":
+                logger.warning("Username is not configured. Check plugin configuration or environment variables.")
+            if password == "":
+                logger.warning("Password is not configured. Check plugin configuration or environment variables.")
+            self.session.auth = (username, password)
 
         if self.enabled:
             if self.simple_log is True:
@@ -866,6 +886,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Returns:
             str: Rendered HTML that MkDocs should write to disk.
+
         """
         site_dir = config.get("site_dir")
         attachments = self.page_attachments.get(page.title, [])
@@ -891,6 +912,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Returns:
             str: HTML passed through without modification.
+
         """
         return html
 
@@ -899,6 +921,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Args:
             config (mkdocs.config.base.Config): Active MkDocs configuration.
+
         """
         if self.dryrun and self.exporter:
             logger.info("Mkdocs With Confluence: Exporting all pages to filesystem...")
@@ -914,6 +937,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Returns:
             str or None: Local page URL when present, otherwise None.
+
         """
         match = re.search("url='(.*)'\\)", section)
         if match:
@@ -929,6 +953,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Returns:
             str or None: Basename of the page when present, otherwise None.
+
         """
         match = re.search("url='(.*)'\\)", section)
         if match:
@@ -944,6 +969,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Returns:
             str or None: Section name when present, otherwise None.
+
         """
         if self.config["debug"]:
             logger.debug(f"SECTION name: {section}")
@@ -961,6 +987,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Returns:
             str or None: Section title when present, otherwise None.
+
         """
         if self.config["debug"]:
             logger.debug(f"SECTION title: {section}")
@@ -992,6 +1019,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Returns:
             str or None: Page title when present, otherwise None.
+
         """
         try:
             r = re.search("\\s*Page\\(title='(.*)',", section)
@@ -1011,7 +1039,7 @@ class MkdocsWithConfluence(BasePlugin):
             logger.warning(f"Error extracting page title: {e}")
             return None
 
-    # Adapted from 
+    # Adapted from
     def get_file_sha1(self, file_path):
         """Calculate SHA1 hash of file.
 
@@ -1020,6 +1048,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Returns:
             str: Hexadecimal SHA1 digest used to tag attachment versions.
+
         """
         hash_sha1 = hashlib.sha1()  # noqa: S324  # nosec B324  # SHA1 for file versioning, not security
         with open(file_path, "rb") as f:
@@ -1033,6 +1062,7 @@ class MkdocsWithConfluence(BasePlugin):
         Args:
             page_name (str): Title of the page that owns the attachment.
             filepath (str or Path): File to upload or compare against existing attachments.
+
         """
         filename = os.path.basename(filepath)
 
@@ -1068,6 +1098,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Returns:
             dict or None: Attachment metadata when found, otherwise None.
+
         """
         name = os.path.basename(filepath)
         if self.config["debug"]:
@@ -1097,6 +1128,7 @@ class MkdocsWithConfluence(BasePlugin):
             filepath (str or Path): Local file whose contents replace the attachment.
             existing_attachment (dict): Metadata returned from get_attachment.
             message (str): Version comment displayed in Confluence history.
+
         """
         if self.config["debug"]:
             logger.info(f" * Mkdocs With Confluence: Update Attachment: PAGE ID: {page_id}, FILE: {filepath}")
@@ -1133,6 +1165,7 @@ class MkdocsWithConfluence(BasePlugin):
             page_id (str): Identifier of the Confluence page.
             filepath (str or Path): Local file to upload as a new attachment.
             message (str): Version comment displayed in Confluence history.
+
         """
         if self.config["debug"]:
             logger.info(f" * Mkdocs With Confluence: Create Attachment: PAGE ID: {page_id}, FILE: {filepath}")
@@ -1170,6 +1203,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Returns:
             str or None: Page identifier when found, otherwise None.
+
         """
         if self.config["debug"]:
             logger.info(f"  * Mkdocs With Confluence: Find Page ID: PAGE NAME: {page_name}")
@@ -1202,6 +1236,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Returns:
             str or None: The page content in storage format, or None if fetch failed
+
         """
         if self.config["debug"]:
             logger.info(f"Fetching current content for page ID: {page_id}")
@@ -1230,6 +1265,7 @@ class MkdocsWithConfluence(BasePlugin):
             page_name (str): Title for the new page.
             parent_page_id (str): Identifier of the parent page.
             page_content_in_storage_format (str): Body content in Confluence storage format.
+
         """
         logger.info(f"  * Mkdocs With Confluence: {page_name} - *NEW PAGE*")
 
@@ -1266,6 +1302,7 @@ class MkdocsWithConfluence(BasePlugin):
         Args:
             page_name (str): Title of the page to update.
             page_content_in_storage_format (str): Body content in Confluence storage format.
+
         """
         page_id = self.find_page_id(page_name)
         logger.info(f"  * Mkdocs With Confluence: {page_name} - *UPDATE*")
@@ -1313,6 +1350,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Returns:
             int or None: Latest version number, or None when the page is missing.
+
         """
         if self.config["debug"]:
             logger.info(f"  * Mkdocs With Confluence: Find PAGE VERSION, PAGE NAME: {page_name}")
@@ -1340,6 +1378,7 @@ class MkdocsWithConfluence(BasePlugin):
 
         Returns:
             str or None: Title of the direct parent page, or None when unavailable.
+
         """
         if self.config["debug"]:
             logger.info(f"  * Mkdocs With Confluence: Find PARENT OF PAGE, PAGE NAME: {name}")

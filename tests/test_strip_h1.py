@@ -1,6 +1,5 @@
 """Tests for strip_h1 feature."""
 
-import pytest
 from mkdocs_to_confluence.plugin import MkdocsWithConfluence
 from tests.fixtures.configs import MINIMAL_CONFIG
 

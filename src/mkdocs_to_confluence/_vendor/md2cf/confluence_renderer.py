@@ -7,6 +7,32 @@ from urllib.parse import unquote, urlparse
 import mistune
 
 
+def convert_markdown_anchor_to_confluence(markdown_anchor: str, page_title: str) -> str:
+    """Convert a markdown-style anchor to Confluence's anchor format.
+
+    Confluence uses the format: #{PageTitleWithoutSpaces}-{HeaderTextPascalCase}
+
+    Args:
+        markdown_anchor: The markdown anchor (e.g., "architecture-overview")
+        page_title: The Confluence page title (e.g., "Foundations for Internet Publishing")
+
+    Returns:
+        Confluence-formatted anchor (e.g., "FoundationsforInternetPublishing-ArchitectureOverview")
+
+    """
+    # Remove spaces from page title
+    page_title_no_spaces = page_title.replace(" ", "")
+
+    # Convert markdown anchor to PascalCase
+    # Split on hyphens, capitalize first letter of each word, remove hyphens
+    if markdown_anchor:
+        words = markdown_anchor.split("-")
+        header_pascal_case = "".join(word.capitalize() for word in words if word)
+        return f"{page_title_no_spaces}-{header_pascal_case}"
+
+    return page_title_no_spaces
+
+
 class RelativeLink(NamedTuple):
     path: str
     fragment: str

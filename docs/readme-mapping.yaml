@@ -1,0 +1,59 @@
+# README.md Section Mapping Configuration
+# This file maps documentation sections to README.md sections
+# Format:
+#   readme_section_name:
+#     file: path/to/doc/file.md
+#     section: Header Name (optional - extracts specific section)
+#     level: 2 (optional - header level, default 2)
+#     prefix: "### Header\n\n" (optional - add prefix before content)
+#     suffix: "\n\nExtra text" (optional - add suffix after content)
+
+# Features section
+features:
+  file: docs/index.md
+  section: Features
+  level: 2
+
+# Installation section
+installation:
+  file: docs/getting-started/installation.md
+  section: Install from PyPI
+  level: 2
+  prefix: "### Install from PyPI\n\n"
+
+# Quick Start section
+quick_start:
+  file: docs/getting-started/quick-start.md
+  section: "Step 2: Get Confluence Credentials"
+  level: 2
+
+# Configuration section - uses tutorial version (learning-oriented)
+configuration:
+  - file: docs/getting-started/configuration.md
+    section: "Step 1: Add Plugin to mkdocs.yml"
+    level: 2
+  - file: docs/getting-started/configuration.md
+    section: "Step 2: Configure Authentication"
+    level: 2
+    prefix: "\n\n"
+
+# Usage Examples section
+usage_examples:
+  file: docs/user-guide/basic-usage.md
+  section: Basic Workflow
+  level: 2
+
+# Markdown Support section
+markdown_support:
+  file: docs/readme-sections/markdown-support.md
+  # No section specified - use entire content after frontmatter
+
+# Troubleshooting section
+troubleshooting:
+  file: docs/readme-sections/troubleshooting.md
+  # No section specified - use entire content after frontmatter
+
+# Contributing section
+contributing:
+  file: docs/readme-sections/contributing.md
+  # No section specified - use entire content after frontmatter

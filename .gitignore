@@ -65,6 +65,7 @@ TODO.md
 PUBLISHING.md
 uv.lock
 CHANGELOG.md
+site/
 
 # UV / uv lock files (optional - some prefer to commit uv.lock)
 # uv.lock
