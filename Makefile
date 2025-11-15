@@ -2,6 +2,10 @@
 # Modern Python project automation using uv
 
 .DEFAULT_GOAL := help
+
+# Load environment variables from .env file if it exists
+-include .env
+export
 .PHONY: help py-setup py-clean py-ruff py-ruff-fix py-mypy py-test py-report test-dryrun py-security py-complexity py-pre-commit py-ci \
         clean lint-fix tests complexity quality info run \
         docs-serve docs-build docs-deploy adr-new adr-list \

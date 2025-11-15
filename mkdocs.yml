@@ -8,6 +8,15 @@ edit_uri: edit/main/docs/
 docs_dir: docs
 site_dir: site
 
+# Exclude files from being built and uploaded to Confluence
+# These files exist in docs/ but shouldn't be published
+exclude_docs: |
+  readme-sections/*.md
+  readme-sections/
+
+not_in_nav: |
+  /reference/mkdocs_to_confluence/
+
 theme:
   name: material
   palette:
@@ -96,6 +105,12 @@ plugins:
             show_signature_annotations: true
             signature_crossrefs: true
             show_if_no_docstring: false
+  - mkdocs-to-confluence:
+      host_url: https://jmanteau.atlassian.net/wiki/rest/api/content
+      space: ~5af14c63babc232defd9afad
+      parent_page_name: Mkdocs-to-Confluence
+      username: !ENV JIRA_USERNAME
+      api_token: !ENV CONFLUENCE_API_TOKEN
 
 nav:
   - Home: index.md
