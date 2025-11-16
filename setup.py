@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="mkdocs-to-confluence",
-    version="0.4.1",
+    version="0.5.0",
     description="MkDocs plugin for converting and uploading Markdown pages to Confluence (via REST API)",
     keywords="mkdocs markdown confluence documentation",
     url="https://github.com/jmanteau/mkdocs-to-confluence/",

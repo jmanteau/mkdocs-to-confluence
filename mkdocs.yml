@@ -1,0 +1,150 @@
+site_name: MkDocs to Confluence
+site_description: MkDocs plugin for converting and uploading Markdown pages to Confluence
+site_url: https://github.com/jmanteau/mkdocs-to-confluence
+repo_url: https://github.com/jmanteau/mkdocs-to-confluence
+repo_name: jmanteau/mkdocs-to-confluence
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+site_dir: site
+
+# Exclude files from being built and uploaded to Confluence
+# These files exist in docs/ but shouldn't be published
+exclude_docs: |
+  readme-sections/*.md
+  readme-sections/
+
+not_in_nav: |
+  /reference/mkdocs_to_confluence/
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotation
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - admonition
+  - pymdownx.details
+  - pymdownx.mark
+  - pymdownx.caret
+  - pymdownx.tilde
+  - pymdownx.keys
+  - attr_list
+  - md_in_html
+  - def_list
+  - footnotes
+  - abbr
+  - tables
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+  - autorefs
+  - section-index
+  - gen-files:
+      scripts:
+        - docs/gen_ref_pages.py
+  - mkdocstrings:
+      enabled: !ENV [MKDOCSTRINGS_ENABLED, true]
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            members_order: source
+            separate_signature: true
+            filters: ["!^_"]
+            docstring_section_style: table
+            merge_init_into_class: true
+            show_signature_annotations: true
+            signature_crossrefs: true
+            show_if_no_docstring: false
+  - mkdocs-to-confluence:
+      host_url: https://jmanteau.atlassian.net/wiki/rest/api/content
+      space: ~5af14c63babc232defd9afad
+      parent_page_name: Mkdocs-to-Confluence
+      page_label: auto-generated-docs
+      cleanup_orphaned_pages: false # Set to true to auto-delete orphaned pages
+      username: !ENV JIRA_USERNAME
+      api_token: !ENV CONFLUENCE_API_TOKEN
+      debug: true
+      debug_diff: false
+
+nav:
+  - Home: index.md
+  - Tutorials:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quick-start.md
+      - Configuration: getting-started/configuration.md
+  - How-To Guides:
+      - Basic Usage: user-guide/basic-usage.md
+      - Advanced Features: user-guide/advanced-features.md
+      - Managing Orphaned Pages: user-guide/managing-orphaned-pages.md
+      - Dry Run Mode: user-guide/dry-run.md
+      - GitHub Pages Deployment: user-guide/github-pages-deployment.md
+      - Troubleshooting: troubleshooting.md
+      - Contributing: contributing.md
+  - Reference:
+      - Configuration Options: reference/configuration.md
+      - API Reference: reference/SUMMARY.md
+      - Markdown Showcase: markdown-showcase.md
+  - Explanation:
+      - How It Works: explanation/architecture.md
+      - Key Concepts: explanation/concepts.md
+  - About:
+      - Changelog: changelog.md
+
+extra:
+  version:
+    provider: mike
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/jmanteau/mkdocs-to-confluence
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/mkdocs-to-confluence/
