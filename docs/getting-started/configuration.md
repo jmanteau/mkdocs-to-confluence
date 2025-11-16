@@ -56,16 +56,16 @@ Or find it in Confluence:
 2. Click "Space Settings" (gear icon)
 3. Look for "Space Key" in the overview
 
-## Step 4: Test with Dry Run
+## Step 4: Test Locally (Export-Only)
 
-Before publishing to Confluence, test locally:
+Before publishing to Confluence, test locally with export-only mode:
 
 ```yaml
 plugins:
   - mkdocs-to-confluence:
       host_url: https://your-domain.atlassian.net/wiki/rest/api/content
       space: DOCS
-      dryrun: true
+      export_only: true  # Export to filesystem without connecting to Confluence
       export_dir: confluence-export
 ```
 
@@ -77,9 +77,12 @@ mkdocs build
 
 Check the `confluence-export/` directory to preview the converted pages.
 
+!!! tip "Validate Against Confluence"
+    Once you have credentials set up, use `dryrun: true` instead to validate against Confluence without making changes. See [Dry Run Mode](../user-guide/dry-run.md) for details.
+
 ## Step 5: Publish to Confluence
 
-Remove or set `dryrun: false` to publish:
+Remove `export_only` or set it to `false` to publish:
 
 ```yaml
 plugins:
@@ -87,7 +90,7 @@ plugins:
       host_url: https://your-domain.atlassian.net/wiki/rest/api/content
       space: DOCS
       parent_page_name: Documentation
-      dryrun: false  # Or remove this line
+      export_only: false  # Or remove this line
 ```
 
 Build again:

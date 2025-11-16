@@ -290,16 +290,16 @@ def test_ensure_parent_hierarchy_tracks_parent_pages():
 
 
 @responses.activate
-def test_on_post_build_skips_when_dryrun():
-    """Test on_post_build skips orphaned detection in dryrun mode."""
+def test_on_post_build_skips_when_export_only():
+    """Test on_post_build skips orphaned detection in export_only mode."""
     plugin = MkdocsWithConfluence()
     config = MINIMAL_CONFIG.copy()
-    config["dryrun"] = True
+    config["export_only"] = True
     plugin.config = config
-    plugin.dryrun = True
+    plugin.export_only = True
     plugin.enabled = True
 
-    # Should not make any API calls
+    # Should not make any API calls in export_only mode
     plugin.on_post_build({})
 
     assert len(responses.calls) == 0
