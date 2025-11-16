@@ -344,10 +344,11 @@ def main():
 
     for page in pages_to_upload:
         for attachment in page.attachments:
-            if page.file_path is not None:
-                attachment_path = page.file_path.parent.joinpath(attachment)
-            else:
-                attachment_path = attachment
+            attachment_path = (
+                page.file_path.parent.joinpath(attachment)
+                if page.file_path is not None
+                else attachment
+            )
 
             if not attachment_path.is_file():
                 error_console.log(
@@ -376,7 +377,7 @@ def main():
             args.postface_file
         ).body
 
-    map_document_path_to_confluence_page = dict()
+    map_document_path_to_confluence_page = {}
     if args.enable_relative_links:
         map_document_path_to_confluence_page = build_document_path_to_page_map(
             pages_to_upload
@@ -561,7 +562,7 @@ def validate_relative_links(pages_to_upload, path_to_page):
 
 
 def build_document_path_to_page_map(pages_to_upload):
-    path_to_page = dict()
+    path_to_page = {}
     for page in pages_to_upload:
         try:
             # Will be filled in later with the page returned by upsert
@@ -670,7 +671,7 @@ def update_pages_with_relative_links(
 
 
 def collect_pages_to_upload(args):
-    pages_to_upload: List[Page] = list()
+    pages_to_upload: List[Page] = []
     if not args.file_list:  # Uploading from standard input
         pages_to_upload.append(
             md2cf.document.get_page_data_from_lines(

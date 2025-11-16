@@ -141,7 +141,7 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 strict_equality = true
 pretty = true
-exclude = ["docs/"]
+exclude = ["docs/", "src/mkdocs_to_confluence/_vendor/"]
 ignore_missing_imports = true
 
 # ---- MkDocs ----

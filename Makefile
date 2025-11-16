@@ -82,7 +82,7 @@ lint-fix: py-ruff-fix ## Alias for py-ruff-fix
 py-mypy: ## Run mypy type checker
 py-mypy: cmd-exists-uv
 	@echo "$(BLUE)Running mypy type checker...$(RESET)"
-	uv --native-tls run mypy mkdocs_with_confluence tests
+	MYPYPATH=src uv --native-tls run mypy src/mkdocs_to_confluence
 	@echo "$(GREEN)✓ Type checking complete$(RESET)"
 
 py-security: ## Run security audit
@@ -92,20 +92,20 @@ py-security: cmd-exists-uv
 	-uv --native-tls run pip-audit
 	@echo ""
 	@echo "$(YELLOW)Scanning code with bandit...$(RESET)"
-	uv --native-tls run bandit -r mkdocs_with_confluence
+	uv --native-tls run bandit -r src/mkdocs_to_confluence
 	@echo "$(GREEN)✓ Security audit complete$(RESET)"
 
 py-complexity: ## Run complexity analysis
 py-complexity: cmd-exists-uv
 	@echo "$(BLUE)Running complexity analysis...$(RESET)"
 	@echo "$(YELLOW)Cyclomatic Complexity:$(RESET)"
-	@uv --native-tls run radon cc --min B --max F --show-complexity --average mkdocs_with_confluence
+	@uv --native-tls run radon cc --min B --max F --show-complexity --average src/mkdocs_to_confluence
 	@echo ""
 	@echo "$(YELLOW)Maintainability Index:$(RESET)"
-	@uv --native-tls run radon mi --min B --max F --show mkdocs_with_confluence
+	@uv --native-tls run radon mi --min B --max F --show src/mkdocs_to_confluence
 	@echo ""
 	@echo "$(YELLOW)Raw Metrics:$(RESET)"
-	@uv --native-tls run radon raw --summary mkdocs_with_confluence
+	@uv --native-tls run radon raw --summary src/mkdocs_to_confluence
 	@echo "$(GREEN)✓ Complexity analysis complete$(RESET)"
 
 complexity: py-complexity ## Alias for py-complexity
@@ -224,7 +224,7 @@ adr-list:
 ##@ Utilities
 run: ## Run the simple main.py application
 run: cmd-exists-uv
-	uv --native-tls run python -m mkdocs_with_confluence.main
+	uv --native-tls run python -m mkdocs_to_confluence.main
 
 run-cli: ## Run the Cyclopts CLI with --help
 run-cli: cmd-exists-uv
