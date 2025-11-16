@@ -136,11 +136,13 @@ cleanup_orphaned_pages: true
     Orphaned pages are **permanently deleted**. Always test with `dryrun: true` first or review the warning messages before enabling cleanup.
 
 When `false` (default):
+
 - Warnings are logged about orphaned pages
 - No pages are deleted
 - You can manually review and delete orphaned pages
 
 When `true`:
+
 - Orphaned pages are automatically deleted
 - Logs show which pages were removed
 - Pages in `keep_pages` are preserved
@@ -160,6 +162,7 @@ keep_pages:
 ```
 
 Use cases:
+
 - Preserve manually-created pages
 - Keep archived documentation
 - Protect special pages from auto-deletion
@@ -175,6 +178,7 @@ dryrun: true
 ```
 
 When enabled:
+
 - **Connects to Confluence** in read-only mode (requires credentials)
 - Validates all pages against existing Confluence content
 - Performs content comparisons to detect changes
@@ -187,6 +191,7 @@ When enabled:
     Use `export_only: true` for the old behavior (filesystem export without Confluence connection).
 
 Use cases:
+
 - Validate documentation before publishing
 - Preview what changes would be made
 - Check for orphaned pages without modifying anything
@@ -204,18 +209,21 @@ export_dir: confluence-export
 ```
 
 When enabled:
+
 - **No Confluence connection** required
 - Exports all pages to filesystem in Confluence storage format
 - No validation, comparisons, or orphaned page detection
 - Faster than `dryrun` mode (no API calls)
 
 Use cases:
+
 - Generate Confluence-compatible HTML for manual upload
 - Archive documentation in Confluence format
 - Offline development without Confluence credentials
 - Preview Confluence rendering locally
 
 !!! tip "Dryrun vs Export-Only"
+
     - Use `dryrun: true` when you want to **validate** against Confluence without making changes
     - Use `export_only: true` when you want to **export** to filesystem without connecting to Confluence
 
@@ -272,6 +280,7 @@ debug: true
 ```
 
 When enabled:
+
 - Logs detailed API responses and operations
 - Saves intermediate HTML files to `/tmp/mkdocs-to-confluence-debug/`
 - Shows parent hierarchy resolution details
@@ -287,6 +296,7 @@ debug_diff: true
 ```
 
 When enabled:
+
 - Writes current and new content to `/tmp/confluence-debug/` for comparison
 - Logs character counts and diff commands
 - Shows whether content has changed or not
