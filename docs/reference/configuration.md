@@ -166,18 +166,62 @@ Use cases:
 
 #### `dryrun`
 
-Enable dry-run mode to export pages to filesystem instead of uploading to Confluence.
+Enable dry-run mode for read-only validation against Confluence.
 
 **Default:** `false`
 
 ```yaml
 dryrun: true
+```
+
+When enabled:
+- **Connects to Confluence** in read-only mode (requires credentials)
+- Validates all pages against existing Confluence content
+- Performs content comparisons to detect changes
+- Detects orphaned pages
+- Shows what would be modified with "*WOULD UPDATE*", "*WOULD CREATE*" messages
+- Does NOT create, update, or delete anything
+
+!!! info "Changed in 0.7.0"
+    Previously, `dryrun` exported to filesystem only. Now it connects to Confluence for validation.
+    Use `export_only: true` for the old behavior (filesystem export without Confluence connection).
+
+Use cases:
+- Validate documentation before publishing
+- Preview what changes would be made
+- Check for orphaned pages without modifying anything
+- CI/CD validation workflows
+
+#### `export_only`
+
+Enable export-only mode to save pages to filesystem without connecting to Confluence.
+
+**Default:** `false`
+
+```yaml
+export_only: true
 export_dir: confluence-export
 ```
 
+When enabled:
+- **No Confluence connection** required
+- Exports all pages to filesystem in Confluence storage format
+- No validation, comparisons, or orphaned page detection
+- Faster than `dryrun` mode (no API calls)
+
+Use cases:
+- Generate Confluence-compatible HTML for manual upload
+- Archive documentation in Confluence format
+- Offline development without Confluence credentials
+- Preview Confluence rendering locally
+
+!!! tip "Dryrun vs Export-Only"
+    - Use `dryrun: true` when you want to **validate** against Confluence without making changes
+    - Use `export_only: true` when you want to **export** to filesystem without connecting to Confluence
+
 #### `export_dir`
 
-Directory for dry-run exports.
+Directory for filesystem exports (used by `export_only` mode).
 
 **Default:** `confluence-export`
 

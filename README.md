@@ -42,7 +42,8 @@ A MkDocs plugin that automatically publishes your documentation to Atlassian Con
 - **Environment Variable Support** - Secure credential management for CI/CD pipelines
 
 ### Developer Experience
-- **Dry Run Mode** - Export to filesystem for review before publishing to Confluence
+- **Dry Run Mode** - Validate against Confluence without making changes (read-only validation)
+- **Export-Only Mode** - Export to filesystem without connecting to Confluence
 - **Conditional Publishing** - Enable/disable based on environment variables
 - **Enhanced Markdown** - Extended syntax support including strikethrough, admonitions, task lists, and more
 - **Comprehensive Logging** - Verbose and debug modes with detailed content comparison
