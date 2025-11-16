@@ -115,6 +115,7 @@ class MkdocsWithConfluence(BasePlugin):
         self.export_only = False
         self.exporter = None
         self.synced_pages: set[str] = set()
+        self.page_status: dict[str, str] = {}  # Track page statuses for summary
 
     def _safe_request(self, method, url, context, **kwargs):
         """Execute HTTP request with connection error handling.
@@ -775,6 +776,7 @@ class MkdocsWithConfluence(BasePlugin):
                 if self.config.get("debug_diff", False):
                     logger.info(f"Page '{page_title}' content unchanged. Skipping update.")
                 logger.info(f"  * Mkdocs With Confluence: {page_title} - *NO CHANGE*")
+                self.page_status[page_title] = "NO CHANGE"
                 for i in MkdocsWithConfluence.tab_nav:
                     if page_title in i:
                         logger.info(f"Mkdocs With Confluence: {i} *NO CHANGE*")
@@ -791,11 +793,13 @@ class MkdocsWithConfluence(BasePlugin):
 
                 if self.dryrun:
                     logger.info(f"  * Mkdocs With Confluence: {page_title} - *WOULD UPDATE* (dryrun)")
+                    self.page_status[page_title] = "WOULD UPDATE (dryrun)"
                     for i in MkdocsWithConfluence.tab_nav:
                         if page_title in i:
                             logger.info(f"Mkdocs With Confluence: {i} *WOULD UPDATE* (dryrun)")
                 else:
                     self.update_page(page_title, confluence_body)
+                    self.page_status[page_title] = "UPDATE"
                     for i in MkdocsWithConfluence.tab_nav:
                         if page_title in i:
                             logger.info(f"Mkdocs With Confluence: {i} *UPDATE*")
@@ -832,12 +836,14 @@ class MkdocsWithConfluence(BasePlugin):
             if self.dryrun:
                 logger.info(f"  * Mkdocs With Confluence: {page_title} - *WOULD CREATE* (dryrun)")
                 logger.info(f"Would ADD page '{page_title}' to parent({direct_parent}) ID: {parent_id}")
+                self.page_status[page_title] = "WOULD CREATE (dryrun)"
                 for i in MkdocsWithConfluence.tab_nav:
                     if page_title in i:
                         logger.info(f"Mkdocs With Confluence: {i} *WOULD CREATE* (dryrun)")
             else:
                 self.add_page(page_title, parent_id, confluence_body)
                 logger.info(f"Trying to ADD page '{page_title}' to parent({direct_parent}) ID: {parent_id}")
+                self.page_status[page_title] = "NEW PAGE"
                 for i in MkdocsWithConfluence.tab_nav:
                     if page_title in i:
                         logger.info(f"Mkdocs With Confluence: {i} *NEW PAGE*")
@@ -1097,6 +1103,31 @@ class MkdocsWithConfluence(BasePlugin):
                 )
             else:
                 logger.info("Mkdocs With Confluence: Run with 'cleanup_orphaned_pages: true' to delete them")
+
+        # Display page status summary in debug/verbose mode
+        if self.page_status and (self.config["debug"] or self.config["verbose"]):
+            logger.info("\n" + "=" * 80)
+            logger.info("PAGE STATUS SUMMARY")
+            logger.info("=" * 80)
+
+            # Count statuses
+            status_counts: dict[str, int] = {}
+            for status in self.page_status.values():
+                status_counts[status] = status_counts.get(status, 0) + 1
+
+            # Display summary by status
+            for status in ["UPDATE", "NEW PAGE", "NO CHANGE", "WOULD UPDATE (dryrun)", "WOULD CREATE (dryrun)"]:
+                if status in status_counts:
+                    logger.info(f"\n{status}: {status_counts[status]} page(s)")
+                    pages_with_status: list[str] = [
+                        page_name for page_name, s in self.page_status.items() if s == status
+                    ]
+                    for page_name in sorted(pages_with_status):
+                        logger.info(f"  - {page_name}")
+
+            logger.info("\n" + "=" * 80)
+            logger.info(f"TOTAL: {len(self.page_status)} page(s) processed")
+            logger.info("=" * 80 + "\n")
 
     def __get_page_url(self, section):
         """Extract page URL from section string.

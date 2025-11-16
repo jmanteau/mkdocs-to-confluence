@@ -116,7 +116,7 @@ plugins:
       dryrun: !ENV [CONFLUENCE_DRYRUN, false]
       debug: !ENV [CONFLUENCE_DEBUG, false]
       verbose: !ENV [CONFLUENCE_VERBOSE, false]
-      debug_diff: false
+      debug_diff: !ENV [CONFLUENCE_DIFF, false]
 
 nav:
   - Home: index.md
