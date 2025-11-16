@@ -13,8 +13,8 @@ class Md2cfTUI:
         tree = rich.tree.Tree("Pages to upload", hide_root=True)
         progress_table = rich.table.Table.grid()
         progress_table.row_styles = ["dim", ""]
-        title_to_tree: Dict[str, rich.tree.Tree] = dict()
-        self.title_to_progress: Dict[str, rich.progress.Progress] = dict()
+        title_to_tree: Dict[str, rich.tree.Tree] = {}
+        self.title_to_progress: Dict[str, rich.progress.Progress] = {}
         for page in pages_to_upload:
             if page.file_path is None and len(pages_to_upload) > 1:
                 pretty_title = f":open_file_folder: {page.title}"

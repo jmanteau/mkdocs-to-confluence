@@ -5,7 +5,10 @@ from setuptools import find_packages, setup
 setup(
     name="mkdocs-to-confluence",
     version="0.6.0",
-    description="MkDocs plugin for converting and uploading Markdown pages to Confluence with automatic synchronization (via REST API)",
+    description=(
+        "MkDocs plugin for converting and uploading Markdown pages to Confluence "
+        "with automatic synchronization (via REST API)"
+    ),
     keywords="mkdocs markdown confluence documentation sync synchronization",
     url="https://github.com/jmanteau/mkdocs-to-confluence/",
     author="Julien Manteau",

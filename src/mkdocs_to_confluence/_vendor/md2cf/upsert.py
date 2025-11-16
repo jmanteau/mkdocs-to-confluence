@@ -23,7 +23,7 @@ class UpsertResult(NamedTuple):
 
 # Adapted from https://stackoverflow.com/a/3431838
 def get_file_sha1(file_path: Path):
-    hash_sha1 = hashlib.sha1()
+    hash_sha1 = hashlib.sha1()  # noqa: S324  # nosec B324
     with open(file_path, "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
             hash_sha1.update(chunk)
@@ -70,9 +70,8 @@ def upsert_page(
 
     # It's not mandatory to have a parent ID -- if there isn't one, the page will be a
     # top-level page in the Confluence space
-    if page.parent_id is None:
-        if page.parent_title is not None:
-            page.parent_id = get_parent_id_from_title(confluence, page)
+    if page.parent_id is None and page.parent_title is not None:
+        page.parent_id = get_parent_id_from_title(confluence, page)
 
     page_message = message
     if only_changed:
@@ -162,10 +161,11 @@ def page_needs_updating(page, existing_page, replace_all_labels):
 def upsert_attachment(
     confluence, attachment, existing_page, message, only_changed, page
 ):
-    if page.file_path is not None:
-        attachment_path = page.file_path.parent.joinpath(attachment)
-    else:
-        attachment_path = attachment
+    attachment_path = (
+        page.file_path.parent.joinpath(attachment)
+        if page.file_path is not None
+        else attachment
+    )
 
     attachment_message = message
     if only_changed:

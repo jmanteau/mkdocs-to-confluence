@@ -1,3 +1,4 @@
+import contextlib
 import hashlib
 import os
 from pathlib import Path
@@ -33,10 +34,10 @@ class Page:
         self.file_path = file_path
         self.attachments = attachments
         if self.attachments is None:
-            self.attachments: List[Path] = list()
+            self.attachments: List[Path] = []
         self.relative_links = relative_links
         if self.relative_links is None:
-            self.relative_links: List[RelativeLink] = list()
+            self.relative_links: List[RelativeLink] = []
         self.page_id = page_id
         self.parent_id = parent_id
         self.parent_title = parent_title
@@ -44,7 +45,7 @@ class Page:
         self.labels = labels
 
     def get_content_hash(self):
-        return hashlib.sha1(self.body.encode()).hexdigest()
+        return hashlib.sha1(self.body.encode()).hexdigest()  # noqa: S324  # nosec B324
 
     def __repr__(self):
         return "Page({})".format(
@@ -107,9 +108,9 @@ def get_pages_from_directory(
       placeholders
     :return: A list of paths to the markdown files to upload.
     """
-    processed_pages = list()
+    processed_pages = []
     base_path = file_path.resolve()
-    folder_data = dict()
+    folder_data = {}
     git_repo = GitRepository(file_path, use_gitignore=use_gitignore)
 
     for current_path, directories, file_names in os.walk(file_path):
@@ -304,10 +305,8 @@ def get_document_frontmatter(markdown_lines: List[str]) -> Dict[str, Any]:
                 frontmatter_yaml += line
     frontmatter = None
     if frontmatter_yaml and frontmatter_end_line:
-        try:
+        with contextlib.suppress(ParserError):
             frontmatter = yaml.safe_load(frontmatter_yaml)
-        except ParserError:
-            pass
     if isinstance(frontmatter, dict):
         frontmatter["frontmatter_end_line"] = frontmatter_end_line
     else:

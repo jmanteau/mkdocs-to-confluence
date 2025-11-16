@@ -241,7 +241,7 @@ def test_incomplete_config_handling():
 
 def test_bearer_auth_class():
     """Test BearerAuth class correctly formats Authorization header."""
-    token = "test_oauth_token_12345"
+    token = "test_oauth_token_12345"  # noqa: S105
     auth = BearerAuth(token)
 
     # Create a mock request object
@@ -270,7 +270,7 @@ def test_plugin_auth_with_bearer_token():
 
     # Verify BearerAuth was used
     assert isinstance(plugin.session.auth, BearerAuth)
-    assert plugin.session.auth.token == "oauth_bearer_token_example_1234567890"
+    assert plugin.session.auth.token == "oauth_bearer_token_example_1234567890"  # noqa: S105
 
 
 def test_plugin_auth_type_defaults_to_basic():
@@ -287,5 +287,5 @@ def test_plugin_config_with_bearer_auth():
     plugin.config = CONFIG_WITH_BEARER_AUTH.copy()
 
     assert plugin.config["auth_type"] == "bearer"
-    assert plugin.config["api_token"] == "oauth_bearer_token_example_1234567890"
+    assert plugin.config["api_token"] == "oauth_bearer_token_example_1234567890"  # noqa: S105
     assert plugin.config["username"] == "test_user"

@@ -295,7 +295,10 @@ class MkdocsWithConfluence(BasePlugin):
 
         # Handle export_only and dryrun modes
         if self.config["export_only"] and self.config["dryrun"]:
-            logger.warning("Both export_only and dryrun are enabled. Using export_only mode (no Confluence connection).")
+            logger.warning(
+                "Both export_only and dryrun are enabled. "
+                "Using export_only mode (no Confluence connection)."
+            )
             self.export_only = True
             self.dryrun = False
             export_dir = Path(self.config["export_dir"])
@@ -678,7 +681,10 @@ class MkdocsWithConfluence(BasePlugin):
                             logger.info(f"Mkdocs With Confluence: {item} *WOULD CREATE* (dryrun)")
                     # In dryrun, we can't create pages, so we can't get their IDs
                     # This will cause issues for child pages, but that's expected in validation mode
-                    logger.warning(f"Cannot create parent '{parent_title}' in dryrun mode - child pages may fail validation")
+                    logger.warning(
+                        f"Cannot create parent '{parent_title}' in dryrun mode - "
+                        "child pages may fail validation"
+                    )
                     return None
                 else:
                     self.add_page(parent_title, current_parent_id, body)
@@ -903,7 +909,7 @@ class MkdocsWithConfluence(BasePlugin):
                 # Use HTTP Basic Auth (default)
                 # Convert None to empty string to avoid deprecation warning in requests 3.0.0
                 username = self.config["username"] or ""
-                if token == "":
+                if token == "":  # nosec B105
                     logger.warning("API token is not configured. Check plugin configuration or environment variables.")
                 self.session.auth = (username, token)
         else:
@@ -912,7 +918,7 @@ class MkdocsWithConfluence(BasePlugin):
             password = self.config["password"] or ""
             if username == "":
                 logger.warning("Username is not configured. Check plugin configuration or environment variables.")
-            if password == "":
+            if password == "":  # nosec B105
                 logger.warning("Password is not configured. Check plugin configuration or environment variables.")
             self.session.auth = (username, password)
 
@@ -1010,7 +1016,7 @@ class MkdocsWithConfluence(BasePlugin):
                 if self.dryrun:
                     logger.info(f"  * Attachment: {p.name} - *WOULD UPLOAD* (dryrun)")
                 else:
-                    self.add_or_update_attachment(page.title, p)
+                    self.add_or_update_attachment(page.title, str(p))
         return output
 
     def on_page_content(self, html: str, page: Any, config: Any, files: Any) -> str:
@@ -1111,7 +1117,10 @@ class MkdocsWithConfluence(BasePlugin):
                 logger.info(f"Mkdocs With Confluence: Deleted {deleted_count} orphaned page(s)")
         else:
             if self.dryrun:
-                logger.info("Mkdocs With Confluence: Run with 'cleanup_orphaned_pages: true' to delete them (dryrun mode)")
+                logger.info(
+                    "Mkdocs With Confluence: Run with 'cleanup_orphaned_pages: true' "
+                    "to delete them (dryrun mode)"
+                )
             else:
                 logger.info("Mkdocs With Confluence: Run with 'cleanup_orphaned_pages: true' to delete them")
 
@@ -1305,6 +1314,7 @@ class MkdocsWithConfluence(BasePlugin):
             response_json = r.json()
         if response_json["size"]:
             return response_json["results"][0]
+        return None
 
     def update_attachment(self, page_id, filepath, existing_attachment, message):
         """Update existing attachment on Confluence page.

@@ -98,14 +98,14 @@ class ConfluenceRenderer(mistune.HTMLRenderer):
         super().__init__(**kwargs)
         self.strip_header = strip_header
         self.remove_text_newlines = remove_text_newlines
-        self.attachments = list()
+        self.attachments = []
         self.title = None
         self.enable_relative_links = enable_relative_links
-        self.relative_links: List[RelativeLink] = list()
+        self.relative_links: List[RelativeLink] = []
 
     def reinit(self):
-        self.attachments = list()
-        self.relative_links = list()
+        self.attachments = []
+        self.relative_links = []
         self.title = None
 
     def header(self, text, level, raw=None):
@@ -115,7 +115,7 @@ class ConfluenceRenderer(mistune.HTMLRenderer):
             if self.strip_header:
                 return ""
 
-        return super(ConfluenceRenderer, self).header(text, level, raw=raw)
+        return super().header(text, level, raw=raw)
 
     def structured_macro(self, name, text=""):
         return ConfluenceTag("structured-macro", attrib={"name": name}, text=text)
@@ -156,7 +156,7 @@ class ConfluenceRenderer(mistune.HTMLRenderer):
                 )
             )
             url = replacement_link
-        return super(ConfluenceRenderer, self).link(text, url, title)
+        return super().link(text, url, title)
 
     def text(self, text):
         if self.remove_text_newlines:
