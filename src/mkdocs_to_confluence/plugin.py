@@ -108,7 +108,6 @@ class MkdocsWithConfluence(BasePlugin):
         self.enabled = True
         self.confluence_renderer = ConfluenceRenderer()
         self.confluence_mistune = mistune.Markdown(renderer=self.confluence_renderer)
-        self.simple_log = False
         self.flen = 1
         self.session = requests.Session()
         self.page_attachments = {}
@@ -233,21 +232,6 @@ class MkdocsWithConfluence(BasePlugin):
         if self.flen == 0:
             logger.error("No documentation pages in directory tree, please add at least one!")
 
-    def on_post_template(self, output_content, template_name, config):
-        """Configure logging mode based on verbosity settings.
-
-        Args:
-            output_content (str): Rendered output from MkDocs.
-            template_name (str): Name of the template used for rendering.
-            config (mkdocs.config.base.Config): Active MkDocs configuration.
-
-        """
-        if self.config["verbose"] is False and self.config["debug"] is False:
-            self.simple_log = True
-            logger.info("Mkdocs With Confluence: Start exporting markdown pages... (simple logging)")
-        else:
-            self.simple_log = False
-
     def on_config(self, config):
         """Configure plugin based on environment and settings.
 
@@ -261,6 +245,17 @@ class MkdocsWithConfluence(BasePlugin):
             logger.info(f"Mkdocs With Confluence v{plugin_version}")
         except Exception:
             logger.info("Mkdocs With Confluence (version unknown)")
+
+        # Allow environment variables to override debug and verbose settings
+        if os.environ.get("CONFLUENCE_DEBUG", "").lower() in ("true", "1"):
+            self.config["debug"] = True
+        elif os.environ.get("CONFLUENCE_DEBUG", "").lower() in ("false", "0"):
+            self.config["debug"] = False
+
+        if os.environ.get("CONFLUENCE_VERBOSE", "").lower() in ("true", "1"):
+            self.config["verbose"] = True
+        elif os.environ.get("CONFLUENCE_VERBOSE", "").lower() in ("false", "0"):
+            self.config["verbose"] = False
 
         # Always show configuration status for troubleshooting (without exposing credentials)
         logger.info("Configuration check:")
@@ -901,7 +896,8 @@ class MkdocsWithConfluence(BasePlugin):
             self.session.auth = (username, password)
 
         if self.enabled:
-            if self.simple_log is True:
+            # Show progress bar only in non-verbose, non-debug mode
+            if not self.config["verbose"] and not self.config["debug"]:
                 progress = "#" * MkdocsWithConfluence._id
                 remaining = "-" * (self.flen - MkdocsWithConfluence._id)
                 logger.info(
