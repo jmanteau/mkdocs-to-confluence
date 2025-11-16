@@ -109,8 +109,12 @@ plugins:
       host_url: https://jmanteau.atlassian.net/wiki/rest/api/content
       space: ~5af14c63babc232defd9afad
       parent_page_name: Mkdocs-to-Confluence
+      page_label: auto-generated-docs
+      cleanup_orphaned_pages: false # Set to true to auto-delete orphaned pages
       username: !ENV JIRA_USERNAME
       api_token: !ENV CONFLUENCE_API_TOKEN
+      debug: true
+      debug_diff: false
 
 nav:
   - Home: index.md
@@ -121,6 +125,7 @@ nav:
   - How-To Guides:
       - Basic Usage: user-guide/basic-usage.md
       - Advanced Features: user-guide/advanced-features.md
+      - Managing Orphaned Pages: user-guide/managing-orphaned-pages.md
       - Dry Run Mode: user-guide/dry-run.md
       - GitHub Pages Deployment: user-guide/github-pages-deployment.md
       - Troubleshooting: troubleshooting.md

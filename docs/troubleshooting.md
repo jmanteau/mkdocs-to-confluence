@@ -279,9 +279,9 @@ Common issues and solutions for mkdocs-to-confluence.
 
 1. **Check Normalized Comparison**
    - Plugin normalizes content before comparison
-   - Enable debug mode to see diff:
+   - Enable debug_diff mode to see content comparison:
    ```yaml
-   debug: true
+   debug_diff: true  # Shows detailed content comparison and creates diff files
    ```
 
 2. **Review Debug Files**
@@ -356,15 +356,14 @@ Common issues and solutions for mkdocs-to-confluence.
 ```yaml
 plugins:
   - mkdocs-to-confluence:
-      debug: true
+      debug: true        # General debug info (API calls, parent chain, etc.)
+      debug_diff: true   # Detailed content comparison (creates temp files)
       verbose: true
 ```
 
 **Output includes:**
-- API request/response details
-- Content comparison details
-- Parent chain resolution
-- Attachment processing
+- `debug`: API request/response details, parent chain resolution, attachment processing
+- `debug_diff`: Content comparison details, normalized diff files, character counts
 
 ### Use Dry Run Mode
 

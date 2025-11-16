@@ -107,6 +107,63 @@ Only strips if:
 - H1 is the first content element
 - There's exactly one H1 in the document
 
+#### `page_label`
+
+Label to add to all auto-generated Confluence pages for easy identification.
+
+**Default:** `auto-generated-docs`
+
+```yaml
+page_label: mkdocs-generated
+```
+
+This label helps identify which pages were created by the plugin, making it easier to:
+- Filter pages in Confluence
+- Bulk-manage auto-generated documentation
+- Identify orphaned pages
+
+#### `cleanup_orphaned_pages`
+
+Automatically delete Confluence pages that exist under the parent page but are no longer in your documentation.
+
+**Default:** `false` (safe default)
+
+```yaml
+cleanup_orphaned_pages: true
+```
+
+!!! warning "Use with Caution"
+    Orphaned pages are **permanently deleted**. Always test with `dryrun: true` first or review the warning messages before enabling cleanup.
+
+When `false` (default):
+- Warnings are logged about orphaned pages
+- No pages are deleted
+- You can manually review and delete orphaned pages
+
+When `true`:
+- Orphaned pages are automatically deleted
+- Logs show which pages were removed
+- Pages in `keep_pages` are preserved
+
+#### `keep_pages`
+
+List of page titles to preserve even if they're not in your documentation (only applies when `cleanup_orphaned_pages: true`).
+
+**Default:** `[]` (empty list)
+
+```yaml
+cleanup_orphaned_pages: true
+keep_pages:
+  - "Old Documentation"
+  - "Archive"
+  - "Manual Pages"
+```
+
+Use cases:
+- Preserve manually-created pages
+- Keep archived documentation
+- Protect special pages from auto-deletion
+
 #### `dryrun`
 
 Enable dry-run mode to export pages to filesystem instead of uploading to Confluence.
@@ -171,9 +228,28 @@ debug: true
 ```
 
 When enabled:
-- Writes comparison files to `/tmp/confluence-debug/`
-- Logs content changes and API responses
-- Saves intermediate HTML files
+- Logs detailed API responses and operations
+- Saves intermediate HTML files to `/tmp/mkdocs-to-confluence-debug/`
+- Shows parent hierarchy resolution details
+
+#### `debug_diff`
+
+Enable verbose content diff debugging for page updates.
+
+**Default:** `false`
+
+```yaml
+debug_diff: true
+```
+
+When enabled:
+- Writes current and new content to `/tmp/confluence-debug/` for comparison
+- Logs character counts and diff commands
+- Shows whether content has changed or not
+- Helpful for debugging why pages are/aren't being updated
+
+!!! tip "Performance Impact"
+    Keep `debug_diff` disabled in production as it writes many temporary files to disk. Enable it only when troubleshooting content update issues.
 
 ## Complete Example
 
@@ -195,6 +271,11 @@ plugins:
 
       # Features
       strip_h1: true
+      page_label: auto-generated-docs
+      cleanup_orphaned_pages: false  # Set to true to auto-delete orphaned pages
+      keep_pages:  # Pages to preserve when cleanup is enabled
+        - "Archive"
+        - "Manual Documentation"
 
       # Testing
       dryrun: false
@@ -203,6 +284,7 @@ plugins:
       # Logging
       verbose: false
       debug: false
+      debug_diff: false  # Enable for verbose content comparison debugging
 
       # Conditional
       enabled_if_env: PUBLISH_DOCS

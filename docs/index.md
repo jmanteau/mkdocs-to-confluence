@@ -15,6 +15,7 @@ Automatically publish your MkDocs documentation to Atlassian Confluence during b
 - **Unlimited Hierarchy Depth** - Support for arbitrary nesting levels
 - **Smart Updates** - Creates new pages or updates existing ones based on title matching
 - **Intelligent Update Detection** - Compares content before updating to skip unnecessary changes, reducing version bumps
+- **Orphaned Page Management** - Automatically detects and optionally cleans up pages that no longer exist in your documentation, keeping your Confluence space in perfect sync
 - **Image Management** - Automatically uploads and updates images as attachments with SHA1 hash-based change detection
 
 ### Authentication & Security
@@ -49,7 +50,9 @@ Practical guides for solving real-world problems and implementing specific featu
 
 - [Basic Usage](user-guide/basic-usage.md) - Publishing workflow
 - [Advanced Features](user-guide/advanced-features.md) - H1 stripping, custom settings
+- [Managing Orphaned Pages](user-guide/managing-orphaned-pages.md) - Sync your Confluence space
 - [Dry Run Mode](user-guide/dry-run.md) - Test before publishing
+- [GitHub Pages Deployment](user-guide/github-pages-deployment.md) - Deploy to GitHub Pages
 - [Troubleshooting](troubleshooting.md) - Common issues and solutions
 - [Contributing](contributing.md) - How to contribute
 

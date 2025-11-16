@@ -77,4 +77,5 @@ This exports to a local directory for inspection.
 
 - [Configuration Guide](configuration.md) - Learn about all configuration options
 - [Basic Usage](../user-guide/basic-usage.md) - Understand how the plugin works
+- [Managing Orphaned Pages](../user-guide/managing-orphaned-pages.md) - Keep your Confluence space synchronized
 - [Advanced Features](../user-guide/advanced-features.md) - Explore advanced capabilities

@@ -286,6 +286,7 @@ Only makes API calls when necessary:
 
 ## Next Steps
 
+- [Managing Orphaned Pages](managing-orphaned-pages.md) - Keep your Confluence space synchronized
 - [Dry Run Mode](dry-run.md) - Test locally before publishing
 - [Configuration Reference](../reference/configuration.md) - All options
 - [API Reference](../reference/SUMMARY.md) - Plugin internals
