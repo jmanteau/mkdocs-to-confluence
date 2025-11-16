@@ -260,6 +260,13 @@ class MkdocsWithConfluence(BasePlugin):
         except Exception:
             logger.info("Mkdocs With Confluence (version unknown)")
 
+        # Debug: Show configuration status (without exposing credentials)
+        if self.config.get("debug"):
+            logger.debug(f"Configuration check:")
+            logger.debug(f"  - username configured: {bool(self.config.get('username'))}")
+            logger.debug(f"  - api_token configured: {bool(self.config.get('api_token'))}")
+            logger.debug(f"  - password configured: {bool(self.config.get('password'))}")
+
         # Always set dryrun regardless of enabled status
         if self.config["dryrun"]:
             logger.warning("Mkdocs With Confluence - DRYRUN MODE turned ON")

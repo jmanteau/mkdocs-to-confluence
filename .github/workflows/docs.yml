@@ -41,6 +41,17 @@ jobs:
       - name: Install dependencies
         run: make py-setup
 
+      - name: Debug environment
+        run: |
+          echo "Checking environment variables (not showing values for security):"
+          echo "JIRA_USERNAME is set: ${{ secrets.JIRA_USERNAME != '' }}"
+          echo "CONFLUENCE_API_TOKEN is set: ${{ secrets.CONFLUENCE_API_TOKEN != '' }}"
+          if [ -n "$JIRA_USERNAME" ]; then echo "JIRA_USERNAME env var is available"; else echo "JIRA_USERNAME env var is NOT available"; fi
+          if [ -n "$CONFLUENCE_API_TOKEN" ]; then echo "CONFLUENCE_API_TOKEN env var is available"; else echo "CONFLUENCE_API_TOKEN env var is NOT available"; fi
+        env:
+          JIRA_USERNAME: ${{ secrets.JIRA_USERNAME }}
+          CONFLUENCE_API_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}
+
       - name: Build documentation
         env:
           JIRA_USERNAME: ${{ secrets.JIRA_USERNAME }}
