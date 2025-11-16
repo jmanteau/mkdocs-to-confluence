@@ -113,6 +113,7 @@ plugins:
       cleanup_orphaned_pages: false # Set to true to auto-delete orphaned pages
       username: !ENV JIRA_USERNAME
       api_token: !ENV CONFLUENCE_API_TOKEN
+      dryrun: !ENV [CONFLUENCE_DRYRUN, false]
       debug: true
       debug_diff: false
 

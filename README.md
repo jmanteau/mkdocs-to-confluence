@@ -117,27 +117,6 @@ plugins:
       api_token: your-token  # Better to use environment variable!
 ```
 
-### Orphaned Page Management
-
-Keep your Confluence space in sync by automatically detecting and optionally cleaning up pages that no longer exist in your documentation:
-
-```yaml
-plugins:
-  - mkdocs-to-confluence:
-      # ... other config ...
-      cleanup_orphaned_pages: false  # Set to true to auto-delete orphaned pages
-      keep_pages:  # Pages to preserve even if not in docs
-        - "Archive"
-        - "Manual Documentation"
-      page_label: auto-generated-docs  # Label all synced pages for easy filtering
-```
-
-**How it works:**
-- Always warns about orphaned pages (pages in Confluence but not in your docs)
-- Optionally deletes them automatically when `cleanup_orphaned_pages: true`
-- Preserves pages listed in `keep_pages` to protect manual content
-- See [Managing Orphaned Pages](https://jmanteau.github.io/mkdocs-to-confluence/user-guide/managing-orphaned-pages/) for detailed strategies
-
 For complete configuration options, see the [Configuration Reference](https://jmanteau.github.io/mkdocs-to-confluence/reference/configuration/).
 
 
@@ -165,8 +144,7 @@ For detailed troubleshooting, see the [full documentation](https://jmanteau.gith
 ```yaml
 plugins:
   - mkdocs-to-confluence:
-      debug: true        # General debugging (API calls, operations)
-      debug_diff: true   # Content comparison details (creates temp files)
+      debug: true
       verbose: true
 ```
 
