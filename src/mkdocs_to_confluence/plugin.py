@@ -95,6 +95,7 @@ class MkdocsWithConfluence(BasePlugin):
         ("debug", config_options.Type(bool, default=False)),
         ("debug_diff", config_options.Type(bool, default=False)),
         ("dryrun", config_options.Type(bool, default=False)),
+        ("export_only", config_options.Type(bool, default=False)),
         ("export_dir", config_options.Type(str, default="confluence-export")),
         ("strip_h1", config_options.Type(bool, default=False)),
         ("cleanup_orphaned_pages", config_options.Type(bool, default=False)),
@@ -107,13 +108,14 @@ class MkdocsWithConfluence(BasePlugin):
         self.enabled = True
         self.confluence_renderer = ConfluenceRenderer()
         self.confluence_mistune = mistune.Markdown(renderer=self.confluence_renderer)
-        self.simple_log = False
         self.flen = 1
         self.session = requests.Session()
         self.page_attachments = {}
         self.dryrun = False
+        self.export_only = False
         self.exporter = None
         self.synced_pages: set[str] = set()
+        self.page_status: dict[str, str] = {}  # Track page statuses for summary
 
     def _safe_request(self, method, url, context, **kwargs):
         """Execute HTTP request with connection error handling.
@@ -231,21 +233,6 @@ class MkdocsWithConfluence(BasePlugin):
         if self.flen == 0:
             logger.error("No documentation pages in directory tree, please add at least one!")
 
-    def on_post_template(self, output_content, template_name, config):
-        """Configure logging mode based on verbosity settings.
-
-        Args:
-            output_content (str): Rendered output from MkDocs.
-            template_name (str): Name of the template used for rendering.
-            config (mkdocs.config.base.Config): Active MkDocs configuration.
-
-        """
-        if self.config["verbose"] is False and self.config["debug"] is False:
-            self.simple_log = True
-            logger.info("Mkdocs With Confluence: Start exporting markdown pages... (simple logging)")
-        else:
-            self.simple_log = False
-
     def on_config(self, config):
         """Configure plugin based on environment and settings.
 
@@ -260,6 +247,17 @@ class MkdocsWithConfluence(BasePlugin):
         except Exception:
             logger.info("Mkdocs With Confluence (version unknown)")
 
+        # Allow environment variables to override debug and verbose settings
+        if os.environ.get("CONFLUENCE_DEBUG", "").lower() in ("true", "1"):
+            self.config["debug"] = True
+        elif os.environ.get("CONFLUENCE_DEBUG", "").lower() in ("false", "0"):
+            self.config["debug"] = False
+
+        if os.environ.get("CONFLUENCE_VERBOSE", "").lower() in ("true", "1"):
+            self.config["verbose"] = True
+        elif os.environ.get("CONFLUENCE_VERBOSE", "").lower() in ("false", "0"):
+            self.config["verbose"] = False
+
         # Always show configuration status for troubleshooting (without exposing credentials)
         logger.info("Configuration check:")
         logger.info(f"  - username configured: {bool(self.config.get('username'))}")
@@ -267,16 +265,32 @@ class MkdocsWithConfluence(BasePlugin):
         logger.info(f"  - password configured: {bool(self.config.get('password'))}")
         logger.info(f"  - auth_type: {self.config.get('auth_type', 'basic')}")
 
-        # Always set dryrun regardless of enabled status
-        if self.config["dryrun"]:
-            logger.warning("Mkdocs With Confluence - DRYRUN MODE turned ON")
-            self.dryrun = True
-            # Initialize exporter for dry-run mode
+        # Handle export_only and dryrun modes
+        if self.config["export_only"] and self.config["dryrun"]:
+            logger.warning(
+                "Both export_only and dryrun are enabled. "
+                "Using export_only mode (no Confluence connection)."
+            )
+            self.export_only = True
+            self.dryrun = False
+            export_dir = Path(self.config["export_dir"])
+            self.exporter = ConfluenceExporter(export_dir)
+            logger.info(f"Mkdocs With Confluence: EXPORT ONLY mode - Exporting to {export_dir}")
+        elif self.config["export_only"]:
+            logger.warning("Mkdocs With Confluence - EXPORT ONLY MODE turned ON (no Confluence connection)")
+            self.export_only = True
+            self.dryrun = False
             export_dir = Path(self.config["export_dir"])
             self.exporter = ConfluenceExporter(export_dir)
             logger.info(f"Mkdocs With Confluence: Exporting to {export_dir}")
+        elif self.config["dryrun"]:
+            logger.warning("Mkdocs With Confluence - DRYRUN MODE turned ON (read-only, no modifications)")
+            self.dryrun = True
+            self.export_only = False
+            self.exporter = None
         else:
             self.dryrun = False
+            self.export_only = False
             self.exporter = None
 
         # Handle conditional enabling based on environment variable
@@ -631,24 +645,38 @@ class MkdocsWithConfluence(BasePlugin):
                     )
 
                 body = TEMPLATE_BODY.replace("TEMPLATE", parent_title)
-                self.add_page(parent_title, current_parent_id, body)
 
-                for item in MkdocsWithConfluence.tab_nav:
-                    if parent_title in item:
-                        logger.info(f"Mkdocs With Confluence: {item} *NEW PAGE*")
+                if self.dryrun:
+                    logger.info(f"Would CREATE parent page '{parent_title}' (dryrun)")
+                    for item in MkdocsWithConfluence.tab_nav:
+                        if parent_title in item:
+                            logger.info(f"Mkdocs With Confluence: {item} *WOULD CREATE* (dryrun)")
+                    # In dryrun, we can't create pages, so we can't get their IDs
+                    # This will cause issues for child pages, but that's expected in validation mode
+                    logger.warning(
+                        f"Cannot create parent '{parent_title}' in dryrun mode - "
+                        "child pages may fail validation"
+                    )
+                    return None
+                else:
+                    self.add_page(parent_title, current_parent_id, body)
 
-                # Wait for the newly created page to be available and get its ID
-                if self.config["debug"]:
-                    logger.debug(f"Waiting for newly created page '{parent_title}' to be available...")
+                    for item in MkdocsWithConfluence.tab_nav:
+                        if parent_title in item:
+                            logger.info(f"Mkdocs With Confluence: {item} *NEW PAGE*")
 
-                # Capture loop variable in lambda default argument to avoid late binding issue
-                self.wait_until(
-                    lambda title=parent_title: self.find_page_id(title),
-                    interval=1,
-                    timeout=20,
-                    max_retries=3,
-                )
-                parent_id = self.find_page_id(parent_title)
+                    # Wait for the newly created page to be available and get its ID
+                    if self.config["debug"]:
+                        logger.debug(f"Waiting for newly created page '{parent_title}' to be available...")
+
+                    # Capture loop variable in lambda default argument to avoid late binding issue
+                    self.wait_until(
+                        lambda title=parent_title: self.find_page_id(title),
+                        interval=1,
+                        timeout=20,
+                        max_retries=3,
+                    )
+                    parent_id = self.find_page_id(parent_title)
 
                 if not parent_id:
                     logger.error(f"Failed to create or retrieve parent page '{parent_title}'. ABORTING!")
@@ -748,6 +776,7 @@ class MkdocsWithConfluence(BasePlugin):
                 if self.config.get("debug_diff", False):
                     logger.info(f"Page '{page_title}' content unchanged. Skipping update.")
                 logger.info(f"  * Mkdocs With Confluence: {page_title} - *NO CHANGE*")
+                self.page_status[page_title] = "NO CHANGE"
                 for i in MkdocsWithConfluence.tab_nav:
                     if page_title in i:
                         logger.info(f"Mkdocs With Confluence: {i} *NO CHANGE*")
@@ -755,16 +784,25 @@ class MkdocsWithConfluence(BasePlugin):
                 # Track synced page (even if unchanged)
                 self.synced_pages.add(page_title)
             else:
-                # Content has changed, perform update
+                # Content has changed, perform update (unless dryrun)
                 if self.config.get("debug_diff", False):
                     if current_content is None:
                         logger.info(f"Page '{page_title}' - Could not fetch current content, will update")
                     else:
                         logger.info(f"Page '{page_title}' - Content has changed, updating")
-                self.update_page(page_title, confluence_body)
-                for i in MkdocsWithConfluence.tab_nav:
-                    if page_title in i:
-                        logger.info(f"Mkdocs With Confluence: {i} *UPDATE*")
+
+                if self.dryrun:
+                    logger.info(f"  * Mkdocs With Confluence: {page_title} - *WOULD UPDATE* (dryrun)")
+                    self.page_status[page_title] = "WOULD UPDATE (dryrun)"
+                    for i in MkdocsWithConfluence.tab_nav:
+                        if page_title in i:
+                            logger.info(f"Mkdocs With Confluence: {i} *WOULD UPDATE* (dryrun)")
+                else:
+                    self.update_page(page_title, confluence_body)
+                    self.page_status[page_title] = "UPDATE"
+                    for i in MkdocsWithConfluence.tab_nav:
+                        if page_title in i:
+                            logger.info(f"Mkdocs With Confluence: {i} *UPDATE*")
 
             # Track synced page
             self.synced_pages.add(page_title)
@@ -795,12 +833,20 @@ class MkdocsWithConfluence(BasePlugin):
                             parent_id = self.find_page_id(direct_parent)
                         break
 
-            self.add_page(page_title, parent_id, confluence_body)
-
-            logger.info(f"Trying to ADD page '{page_title}' to parent({direct_parent}) ID: {parent_id}")
-            for i in MkdocsWithConfluence.tab_nav:
-                if page_title in i:
-                    logger.info(f"Mkdocs With Confluence: {i} *NEW PAGE*")
+            if self.dryrun:
+                logger.info(f"  * Mkdocs With Confluence: {page_title} - *WOULD CREATE* (dryrun)")
+                logger.info(f"Would ADD page '{page_title}' to parent({direct_parent}) ID: {parent_id}")
+                self.page_status[page_title] = "WOULD CREATE (dryrun)"
+                for i in MkdocsWithConfluence.tab_nav:
+                    if page_title in i:
+                        logger.info(f"Mkdocs With Confluence: {i} *WOULD CREATE* (dryrun)")
+            else:
+                self.add_page(page_title, parent_id, confluence_body)
+                logger.info(f"Trying to ADD page '{page_title}' to parent({direct_parent}) ID: {parent_id}")
+                self.page_status[page_title] = "NEW PAGE"
+                for i in MkdocsWithConfluence.tab_nav:
+                    if page_title in i:
+                        logger.info(f"Mkdocs With Confluence: {i} *NEW PAGE*")
 
             # Track synced page
             self.synced_pages.add(page_title)
@@ -842,7 +888,7 @@ class MkdocsWithConfluence(BasePlugin):
                 username = self.config["username"] or ""
                 if username == "":
                     logger.warning("Username is not configured. Check plugin configuration or environment variables.")
-                if token == "":
+                if token == "":  # nosec B105
                     logger.warning("API token is not configured. Check plugin configuration or environment variables.")
                 self.session.auth = (username, token)
         else:
@@ -851,12 +897,13 @@ class MkdocsWithConfluence(BasePlugin):
             password = self.config["password"] or ""
             if username == "":
                 logger.warning("Username is not configured. Check plugin configuration or environment variables.")
-            if password == "":
+            if password == "":  # nosec B105
                 logger.warning("Password is not configured. Check plugin configuration or environment variables.")
             self.session.auth = (username, password)
 
         if self.enabled:
-            if self.simple_log is True:
+            # Show progress bar only in non-verbose, non-debug mode
+            if not self.config["verbose"] and not self.config["debug"]:
                 progress = "#" * MkdocsWithConfluence._id
                 remaining = "-" * (self.flen - MkdocsWithConfluence._id)
                 logger.info(
@@ -891,9 +938,8 @@ class MkdocsWithConfluence(BasePlugin):
                     )
 
                 # Sync page to Confluence or add to exporter
-                if self.dryrun and self.exporter:
-                    # Add page to exporter queue for dry-run export
-                    # For dry-run, pass direct parent (last in chain) if it's not the root
+                if self.export_only and self.exporter:
+                    # Export-only mode: Add page to exporter queue (no Confluence connection)
                     direct_parent = parent_chain[-1] if parent_chain else None
                     root_parent = parent_chain[0] if parent_chain else None
                     self.exporter.add_page(
@@ -905,7 +951,7 @@ class MkdocsWithConfluence(BasePlugin):
                     )
                     logger.info(f"Mkdocs With Confluence: {page.title} - *QUEUED FOR EXPORT*")
                 else:
-                    # Normal mode: sync to Confluence (create or update)
+                    # Normal or dryrun mode: sync to Confluence (dryrun = read-only validation)
                     sync_success = self._sync_page(page.title, parent_chain, confluence_body)
                     if not sync_success:
                         return markdown
@@ -932,17 +978,25 @@ class MkdocsWithConfluence(BasePlugin):
             str: Rendered HTML that MkDocs should write to disk.
 
         """
+        # Skip attachment uploads in export_only mode (no Confluence connection)
+        if self.export_only:
+            return output
+
         site_dir = config.get("site_dir")
         attachments = self.page_attachments.get(page.title, [])
 
         if self.config["debug"]:
             logger.debug(f"\nUPLOADING ATTACHMENTS TO CONFLUENCE FOR {page.title}, DETAILS:")
             logger.info(f"FILES: {attachments}  \n")
+
         for attachment in attachments:
             if self.config["debug"]:
                 logger.debug(f"looking for {attachment} in {site_dir}")
             for p in Path(site_dir).rglob(f"*{attachment}"):
-                self.add_or_update_attachment(page.title, p)
+                if self.dryrun:
+                    logger.info(f"  * Attachment: {p.name} - *WOULD UPLOAD* (dryrun)")
+                else:
+                    self.add_or_update_attachment(page.title, str(p))
         return output
 
     def on_page_content(self, html: str, page: Any, config: Any, files: Any) -> str:
@@ -967,16 +1021,17 @@ class MkdocsWithConfluence(BasePlugin):
             config (mkdocs.config.base.Config): Active MkDocs configuration.
 
         """
-        # Handle dry-run export
-        if self.dryrun and self.exporter:
-            logger.info("Mkdocs With Confluence: Exporting all pages to filesystem...")
-            self.exporter.export_all()
-            export_dir = Path(self.config["export_dir"])
-            logger.info(f"Mkdocs With Confluence: Export complete! Files saved to {export_dir.absolute()}")
+        # Handle export-only mode (filesystem export, no Confluence connection)
+        if self.export_only:
+            if self.exporter:
+                logger.info("Mkdocs With Confluence: Exporting all pages to filesystem...")
+                self.exporter.export_all()
+                export_dir = Path(self.config["export_dir"])
+                logger.info(f"Mkdocs With Confluence: Export complete! Files saved to {export_dir.absolute()}")
             return
 
-        # Handle orphaned pages detection and cleanup (only when enabled and not in dryrun)
-        if not self.enabled or self.dryrun:
+        # Skip orphaned page detection if plugin is disabled
+        if not self.enabled:
             return
 
         # Get root parent page
@@ -1023,21 +1078,56 @@ class MkdocsWithConfluence(BasePlugin):
         for title in sorted(orphaned_titles):
             logger.warning(f"  - {title}")
 
-        # Delete orphaned pages if cleanup is enabled
+        # Delete orphaned pages if cleanup is enabled (skip in dryrun)
         if self.config.get("cleanup_orphaned_pages", False):
-            logger.info("Mkdocs With Confluence: Cleanup enabled, deleting orphaned pages...")
-            deleted_count = 0
-            for page in confluence_pages:
-                if page["title"] in orphaned_titles:
-                    try:
-                        self.delete_page(page["id"])
-                        deleted_count += 1
-                    except Exception as e:
-                        logger.error(f"Failed to delete page '{page['title']}': {e}")
+            if self.dryrun:
+                logger.info("Mkdocs With Confluence: Cleanup enabled, but DRYRUN - would delete orphaned pages")
+                logger.info(f"Would delete {len(orphaned_titles)} orphaned page(s) (dryrun)")
+            else:
+                logger.info("Mkdocs With Confluence: Cleanup enabled, deleting orphaned pages...")
+                deleted_count = 0
+                for page in confluence_pages:
+                    if page["title"] in orphaned_titles:
+                        try:
+                            self.delete_page(page["id"])
+                            deleted_count += 1
+                        except Exception as e:
+                            logger.error(f"Failed to delete page '{page['title']}': {e}")
 
-            logger.info(f"Mkdocs With Confluence: Deleted {deleted_count} orphaned page(s)")
+                logger.info(f"Mkdocs With Confluence: Deleted {deleted_count} orphaned page(s)")
         else:
-            logger.info("Mkdocs With Confluence: Run with 'cleanup_orphaned_pages: true' to delete them")
+            if self.dryrun:
+                logger.info(
+                    "Mkdocs With Confluence: Run with 'cleanup_orphaned_pages: true' "
+                    "to delete them (dryrun mode)"
+                )
+            else:
+                logger.info("Mkdocs With Confluence: Run with 'cleanup_orphaned_pages: true' to delete them")
+
+        # Display page status summary in debug/verbose mode
+        if self.page_status and (self.config["debug"] or self.config["verbose"]):
+            logger.info("\n" + "=" * 80)
+            logger.info("PAGE STATUS SUMMARY")
+            logger.info("=" * 80)
+
+            # Count statuses
+            status_counts: dict[str, int] = {}
+            for status in self.page_status.values():
+                status_counts[status] = status_counts.get(status, 0) + 1
+
+            # Display summary by status
+            for status in ["UPDATE", "NEW PAGE", "NO CHANGE", "WOULD UPDATE (dryrun)", "WOULD CREATE (dryrun)"]:
+                if status in status_counts:
+                    logger.info(f"\n{status}: {status_counts[status]} page(s)")
+                    pages_with_status: list[str] = [
+                        page_name for page_name, s in self.page_status.items() if s == status
+                    ]
+                    for page_name in sorted(pages_with_status):
+                        logger.info(f"  - {page_name}")
+
+            logger.info("\n" + "=" * 80)
+            logger.info(f"TOTAL: {len(self.page_status)} page(s) processed")
+            logger.info("=" * 80 + "\n")
 
     def __get_page_url(self, section):
         """Extract page URL from section string.
@@ -1229,6 +1319,7 @@ class MkdocsWithConfluence(BasePlugin):
             response_json = r.json()
         if response_json["size"]:
             return response_json["results"][0]
+        return None
 
     def update_attachment(self, page_id, filepath, existing_attachment, message):
         """Update existing attachment on Confluence page.

@@ -99,7 +99,7 @@ def test_extract_attachments_file_protocol():
     markdown = '<img src="file:///tmp/image1.png" s'
     attachments = plugin._extract_attachments(markdown)
 
-    assert "/tmp/image1.png" in attachments
+    assert "/tmp/image1.png" in attachments  # noqa: S108
 
 
 def test_extract_attachments_markdown_format():
@@ -125,7 +125,7 @@ def test_extract_attachments_mixed_formats():
     '''
     attachments = plugin._extract_attachments(markdown)
 
-    assert "/tmp/temp_image.png" in attachments
+    assert "/tmp/temp_image.png" in attachments  # noqa: S108
     assert "diagrams/architecture.png" in attachments
     assert "docs/diagrams/architecture.png" in attachments
 
