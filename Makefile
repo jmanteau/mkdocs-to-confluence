@@ -349,6 +349,7 @@ release: ## Interactive release workflow with version management
 	else \
 		echo "$(CYAN)Updating version to: $$NEW_VERSION$(RESET)"; \
 		sed -i.bak "s/^version = \".*\"/version = \"$$NEW_VERSION\"/" pyproject.toml && rm pyproject.toml.bak; \
+		sed -i.bak "s/version=\".*\"/version=\"$$NEW_VERSION\"/" setup.py && rm setup.py.bak; \
 		TODAY=$$(date +%Y-%m-%d); \
 		if grep -q "^\[$$NEW_VERSION\]" CHANGELOG.md; then \
 			echo "$(YELLOW)Version $$NEW_VERSION already exists in CHANGELOG.md, updating date...$(RESET)"; \
@@ -365,7 +366,7 @@ release: ## Interactive release workflow with version management
 			awk 'NR==FNR{line=$$$$0; next} /^\[Unreleased\]:/{print; print line; next}1' - CHANGELOG.md > CHANGELOG.md.tmp && \
 			mv CHANGELOG.md.tmp CHANGELOG.md; \
 		fi; \
-		echo "$(GREEN)✓ Version updated in pyproject.toml and CHANGELOG.md$(RESET)"; \
+		echo "$(GREEN)✓ Version updated in pyproject.toml, setup.py, and CHANGELOG.md$(RESET)"; \
 	fi; \
 	echo ""; \
 	echo "$(CYAN)Running publish checks...$(RESET)"; \

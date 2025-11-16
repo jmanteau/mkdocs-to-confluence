@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mkdocs-to-confluence"
-version = "0.5.0"
+version = "0.6.0"
 description = "MkDocs plugin for converting and uploading Markdown pages to Confluence with automatic synchronization (via REST API)"
 readme = "README.md"
 requires-python = ">=3.8"
