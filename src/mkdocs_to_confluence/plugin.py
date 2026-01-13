@@ -20,6 +20,7 @@ from typing import Any
 
 import mistune
 import requests
+from dotenv import load_dotenv
 from mkdocs.config import config_options
 from mkdocs.plugins import BasePlugin
 from requests.auth import AuthBase
@@ -81,9 +82,9 @@ class MkdocsWithConfluence(BasePlugin):
 
     _id = 0
     config_scheme = (
-        ("host_url", config_options.Type(str, default=None)),
-        ("space", config_options.Type(str, default=None)),
-        ("parent_page_name", config_options.Type(str, default=None)),
+        ("host_url", config_options.Type(str, default=environ.get("CONFLUENCE_HOST_URL", None))),
+        ("space", config_options.Type(str, default=environ.get("SPACE_KEY", None))),
+        ("parent_page_name", config_options.Type(str, default=environ.get("PARENT_PAGE_NAME", None))),
         ("username", config_options.Type(str, default=environ.get("JIRA_USERNAME", None))),
         # If api_token is specified, password is ignored
         ("api_token", config_options.Type(str, default=environ.get("CONFLUENCE_API_TOKEN", None))),
@@ -253,6 +254,25 @@ class MkdocsWithConfluence(BasePlugin):
             config (mkdocs.config.base.Config): Active MkDocs configuration being initialized.
 
         """
+        # Load environment variables from .env file
+        load_dotenv()
+
+        # Update config with environment variables
+        if not self.config.get('host_url') and environ.get('CONFLUENCE_HOST_URL'):
+            self.config['host_url'] = environ.get('CONFLUENCE_HOST_URL')
+        if not self.config.get('space') and environ.get('SPACE_KEY'):
+            self.config['space'] = environ.get('SPACE_KEY')
+        if not self.config.get('parent_page_name') and environ.get('PARENT_PAGE_NAME'):
+            self.config['parent_page_name'] = environ.get('PARENT_PAGE_NAME')
+        if not self.config.get('api_token') and environ.get('CONFLUENCE_API_TOKEN'):
+            self.config['api_token'] = environ.get('CONFLUENCE_API_TOKEN')
+            # Use bearer authentication when API token is provided
+            self.config['auth_type'] = 'bearer'
+        if not self.config.get('username') and environ.get('JIRA_USERNAME'):
+            self.config['username'] = environ.get('JIRA_USERNAME')
+        if not self.config.get('password') and environ.get('JIRA_PASSWORD'):
+            self.config['password'] = environ.get('JIRA_PASSWORD')
+
         # Print version
         try:
             plugin_version = version("mkdocs-to-confluence")
@@ -262,6 +282,9 @@ class MkdocsWithConfluence(BasePlugin):
 
         # Always show configuration status for troubleshooting (without exposing credentials)
         logger.info("Configuration check:")
+        logger.info(f"  - host_url configured: {self.config.get('host_url')}")
+        logger.info(f"  - space configured: {self.config.get('space')}")
+        logger.info(f"  - parent_page_name configured name: {self.config.get('parent_page_name')}")
         logger.info(f"  - username configured: {bool(self.config.get('username'))}")
         logger.info(f"  - api_token configured: {bool(self.config.get('api_token'))}")
         logger.info(f"  - password configured: {bool(self.config.get('password'))}")
@@ -835,13 +858,11 @@ class MkdocsWithConfluence(BasePlugin):
             if self.config["auth_type"] == "bearer":
                 self.session.auth = BearerAuth(token)
                 if self.config["debug"]:
-                    logger.debug(f"Using OAuth Bearer token authentication for {self.config['username']}")
+                    logger.debug("Using OAuth Bearer token authentication")
             else:
                 # Use HTTP Basic Auth (default)
                 # Convert None to empty string to avoid deprecation warning in requests 3.0.0
                 username = self.config["username"] or ""
-                if username == "":
-                    logger.warning("Username is not configured. Check plugin configuration or environment variables.")
                 if token == "":
                     logger.warning("API token is not configured. Check plugin configuration or environment variables.")
                 self.session.auth = (username, token)

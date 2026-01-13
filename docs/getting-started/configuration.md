@@ -42,6 +42,17 @@ plugins:
       api_token: your-token  # Better to use environment variable!
 ```
 
+Alternatively, you can specify credentials directly in `.env` (recommended):
+
+```
+JIRA_USERNAME="your-email@example.com"
+CONFLUENCE_API_TOKEN="your-api-token-here"
+CONFLUENCE_HOST_URL="https://domain_name/rest/api/content"
+SPACE_KEY="your-confluence-space-key"
+PARENT_PAGE_NAME="Technical Documentation"
+```
+
+
 ## Step 3: Find Your Space Key
 
 Your Confluence space key appears in the URL:
