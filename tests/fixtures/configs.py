@@ -11,7 +11,9 @@ MINIMAL_CONFIG = {
     "enabled_if_env": None,
     "verbose": False,
     "debug": False,
+    "debug_diff": False,
     "dryrun": False,
+    "export_only": False,
     "export_dir": "confluence-export",
     "strip_h1": False,
 }
@@ -28,7 +30,9 @@ CONFIG_WITH_API_TOKEN = {
     "enabled_if_env": None,
     "verbose": False,
     "debug": False,
+    "debug_diff": False,
     "dryrun": False,
+    "export_only": False,
     "export_dir": "confluence-export",
 }
 
@@ -44,7 +48,9 @@ CONFIG_WITH_BEARER_AUTH = {
     "enabled_if_env": None,
     "verbose": False,
     "debug": False,
+    "debug_diff": False,
     "dryrun": False,
+    "export_only": False,
     "export_dir": "confluence-export",
 }
 
@@ -59,7 +65,9 @@ CONFIG_DEBUG_MODE = {
     "enabled_if_env": None,
     "verbose": False,
     "debug": True,
+    "debug_diff": False,
     "dryrun": False,
+    "export_only": False,
     "export_dir": "confluence-export",
 }
 
@@ -74,7 +82,9 @@ CONFIG_DRYRUN_MODE = {
     "enabled_if_env": None,
     "verbose": False,
     "debug": False,
+    "debug_diff": False,
     "dryrun": True,
+    "export_only": False,
     "export_dir": "confluence-export",
 }
 
@@ -89,7 +99,9 @@ CONFIG_WITH_ENV_CHECK = {
     "enabled_if_env": "CONFLUENCE_UPLOAD",
     "verbose": False,
     "debug": False,
+    "debug_diff": False,
     "dryrun": False,
+    "export_only": False,
     "export_dir": "confluence-export",
 }
 
@@ -104,6 +116,8 @@ INCOMPLETE_CONFIG = {
     "enabled_if_env": None,
     "verbose": False,
     "debug": False,
+    "debug_diff": False,
     "dryrun": False,
+    "export_only": False,
     "export_dir": "confluence-export",
 }

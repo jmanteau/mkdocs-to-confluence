@@ -114,8 +114,9 @@ plugins:
       username: !ENV JIRA_USERNAME
       api_token: !ENV CONFLUENCE_API_TOKEN
       dryrun: !ENV [CONFLUENCE_DRYRUN, false]
-      debug: true
-      debug_diff: false
+      debug: !ENV [CONFLUENCE_DEBUG, false]
+      verbose: !ENV [CONFLUENCE_VERBOSE, false]
+      debug_diff: !ENV [CONFLUENCE_DIFF, false]
 
 nav:
   - Home: index.md

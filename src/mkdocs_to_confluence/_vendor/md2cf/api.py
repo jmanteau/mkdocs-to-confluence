@@ -20,7 +20,7 @@ class Bunch(dict):
             kwargs = {}
         for key, value in kwargs.items():
             kwargs[key] = bunchify(value)
-        super(Bunch, self).__init__(kwargs)
+        super().__init__(kwargs)
         self.__dict__ = self
 
 
@@ -28,12 +28,11 @@ class MinimalConfluence:
     def __init__(
         self, host, username=None, password=None, token=None, verify=True, max_retries=4
     ):
-        if token is None:
-            if username is None and password is None:
-                raise ValueError(
-                    "Either a personal access token, "
-                    "or username and password are required"
-                )
+        if token is None and username is None and password is None:
+            raise ValueError(
+                "Either a personal access token, "
+                "or username and password are required"
+            )
 
         if not host.endswith("/"):
             self.host = host + "/"
@@ -86,7 +85,7 @@ class MinimalConfluence:
         content_type="page",
         additional_expansions=None,
     ):
-        """Create a new page in a space
+        """Create a new page in a space.
 
         Args:
             title (str): the title for the page
@@ -136,7 +135,7 @@ class MinimalConfluence:
         update_message=None,
         labels=None,
     ):
-        """Create a new page in a space
+        """Create a new page in a space.
 
         Args:
             space (str): the Confluence space for the page
