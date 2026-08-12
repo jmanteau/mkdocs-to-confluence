@@ -4,6 +4,7 @@ from unittest.mock import Mock
 
 from mkdocs_to_confluence.plugin import MkdocsWithConfluence
 from tests.fixtures.configs import MINIMAL_CONFIG
+from tests.fixtures.markdown_samples import MARKDOWN_WITH_TABLE
 
 # ============================================================================
 # Tests for _resolve_page_parents()
@@ -201,3 +202,25 @@ def test_convert_to_confluence_format_handles_special_chars_in_page_name():
     assert isinstance(confluence_body, str)
     assert len(confluence_body) > 0
     assert '<h1>' in confluence_body or 'Test' in confluence_body
+
+
+def test_convert_to_confluence_format_handles_tables():
+    """Test _convert_to_confluence_format() converts markdown tables to HTML tables."""
+    plugin = MkdocsWithConfluence()
+    plugin.config = MINIMAL_CONFIG.copy()
+
+    confluence_body = plugin._convert_to_confluence_format(MARKDOWN_WITH_TABLE, "TablePage")
+
+    assert isinstance(confluence_body, str)
+    assert len(confluence_body) > 0
+    assert "<table>" in confluence_body
+    assert "<thead>" in confluence_body
+    assert "<tbody>" in confluence_body
+    assert "<th>Name</th>" in confluence_body
+    assert "<th>Role</th>" in confluence_body
+    assert "<td>Alice</td>" in confluence_body
+    assert "<td>Admin</td>" in confluence_body
+    assert "<td>Bob</td>" in confluence_body
+    assert "<td>Viewer</td>" in confluence_body
+    assert confluence_body.count("<tr>") == 3
+    

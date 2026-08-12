@@ -50,6 +50,13 @@ This page contains only text content with no images or attachments.
 - Item 3
 """
 
+# Markdown table sample
+MARKDOWN_WITH_TABLE = """| Name  | Role    |
+| ----- | ------- |
+| Alice | Admin   |
+| Bob   | Viewer  |
+"""
+
 # Expected attachment lists
 EXPECTED_ATTACHMENTS_FILE = [
     "/tmp/test_image.png",  # noqa: S108

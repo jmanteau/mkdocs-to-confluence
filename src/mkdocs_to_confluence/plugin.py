@@ -20,6 +20,7 @@ from typing import Any
 
 import mistune
 import requests
+from mistune.plugins.table import table as mistune_table
 from dotenv import load_dotenv
 from mkdocs.config import config_options
 from mkdocs.plugins import BasePlugin
@@ -107,7 +108,7 @@ class MkdocsWithConfluence(BasePlugin):
         """Initialize plugin with default settings."""
         self.enabled = True
         self.confluence_renderer = ConfluenceRenderer()
-        self.confluence_mistune = mistune.Markdown(renderer=self.confluence_renderer)
+        self.confluence_mistune = mistune.Markdown(renderer=self.confluence_renderer, plugins=[mistune_table])
         self.simple_log = False
         self.flen = 1
         self.session = requests.Session()
